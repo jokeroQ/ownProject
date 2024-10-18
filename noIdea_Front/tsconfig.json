@@ -1,0 +1,51 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": [
+      "ES2020",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "skipLibCheck": true,
+    /* Bundler mode */
+    // "moduleResolution": "bundler",
+    "moduleResolution": "node",
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "preserve",
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "typeRoots": [
+      "./node_modules/@types"
+    ],
+    "types": [
+      "node",
+      "unplugin-auto-import/vite",
+      "vite/client",
+      "unplugin-icons/types/vue",
+    ],
+    "baseUrl": ".",  // 设置项目根目录为基准
+    "paths": {
+      "@/*": ["src/*"],
+      "coms/*":["src/components/*"]
+    },
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
+    "src/auto-imports.d.ts"
+  ],
+  "references": [
+    {
+      "path": "./tsconfig.node.json"
+    }
+  ]
+}
