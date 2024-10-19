@@ -1,4 +1,5 @@
 export interface Menu {
+    id?:number,
     index: string;
     title: string;
 }

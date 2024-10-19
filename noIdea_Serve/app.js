@@ -2,6 +2,7 @@ const express = require('express');
 const app = express();
 const sequelize = require('./config/db');
 const userRoutes = require('./routes/userRoutes'); 
+const menuRoutes = require('./routes/menuRoutes');
 app.use(express.json());
 const cors = require('cors');
 
@@ -11,7 +12,7 @@ app.use(cors());
 sequelize.authenticate()
     .then(() => {
         console.log('数据库连接成功！');
-        return sequelize.sync(); // 同步模型到数据库
+        return sequelize.sync({ alter: true }); // 同步模型到数据库
     })
     .then(() => {
         console.log('所有模型已成功同步');
@@ -20,6 +21,7 @@ sequelize.authenticate()
         console.error('数据库连接失败：', err);
     });
 app.use('/api/users', userRoutes);
+app.use('/api/menu', menuRoutes);
 // 启动服务器
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {

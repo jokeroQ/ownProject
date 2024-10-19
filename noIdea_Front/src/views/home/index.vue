@@ -6,7 +6,7 @@
           <el-menu-item
             @click="changeTab(i.index)"
             :index="i.index"
-            v-for="i in menus"
+            v-for="i in state.menus"
             :key="i.index"
             >{{ i.title }}
             <div class="edit">
@@ -52,7 +52,7 @@
       </el-main>
       <el-footer>
         <div class="bottom">
-          <p>{{ statement.moto }}</p>
+          <p>{{ state.moto }}</p>
           <el-link @click="exitMode" :underline="false" v-if="editMode"
             >退出编辑模式</el-link
           >
@@ -84,23 +84,39 @@
 <script setup lang="ts">
 import MainLabel from "@/components/label/MainLabel.vue";
 import { menuList, Menu, getMotto } from "@views/home/home";
+import { deleteMenuItem } from "@/api/menuApi/menu";
 import { Search } from "@element-plus/icons-vue";
 import { reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
+import { postRequest, getRequest, putRequest } from "../../utils/httpService";
 // const state = reactive({
 //   menuList: menuList,
 // });
-let menus = reactive<Menu[]>(menuList);
 const searchValue = ref<string>("");
 const activeTab = ref<string>("2");
 const dialogVisible = ref(false);
 const labelName = ref("");
-const statement = reactive<object>({
+const state = reactive<any>({
   moto: getMotto(),
+  menus: [],
 });
 const editMode = ref<boolean>(false);
 const mode = ref<string>("add");
 const index = ref<string>("");
+onMounted(() => {
+  getMenu();
+});
+//获取最新的菜单
+const getMenu = async () => {
+  getRequest("/menu/getMenus").then((res:any)=>{
+    state.menus = res.data;
+  }).catch((error:any)=>{
+    ElMessage({
+        message: error.message,
+        type: "error",
+      });
+  })
+};
 //切换菜单项
 const changeTab = (index: string) => {
   //   console.log(index);
@@ -139,26 +155,71 @@ const editDetail = (i: any) => {
   index.value = i.index;
 };
 //添加标签
-const addType = () => {
+const addType = async () => {
   if (index.value) {
-    menus.forEach((i) => {
-      if (i.index == index.value) {
-        i.title = labelName.value;
-      }
-    });
+    editMenus();
   } else {
-    menus.push({
-      index: `${menus.length + 1}dd`,
-      title: labelName.value,
-    });
+    try {
+      const res = await postRequest(`/menu/addMenus`, {
+        title: labelName.value,
+      });
+      ElMessage({
+        message: res.message,
+        type: "success",
+      });
+      getMenu();
+    } catch (error: any) {
+      const { data } = error.response;
+      ElMessage({
+        message: data.message,
+        type: "error",
+      });
+    }
   }
   dialogVisible.value = false;
 };
+//更新菜单项
+const editMenus = async () => {
+  const params = {
+    index: index.value,
+    title: labelName.value,
+  };
+  try {
+    const res = await putRequest(`/menu/updateMenu/${index.value}`, params);
+    ElMessage({
+      message: res.message,
+      type: "success",
+    });
+    getMenu();
+  } catch (error: any) {
+    const { data } = error.response;
+    ElMessage({
+      message: data.message,
+      type: "error",
+    });
+  }
+};
 //删除左侧菜单标签
-const deleteItem = (index: string) => {
-  const num = menus.findIndex((menu) => menu.index === index);
-  if (num !== -1) {
-    menus.splice(num, 1);
+const deleteItem = async(index: string) => {
+  try {
+    const res = await deleteMenuItem({ id: index });
+    if (res.status == 200) {
+      ElMessage({
+        message: res.message,
+        type: "success",
+      });
+    } else {
+      ElMessage({
+        message: res.message,
+        type: "error",
+      });
+    }
+    getMenu();
+  } catch (error:any) {
+    ElMessage({
+      message: error.message,
+      type: "error",
+    });
   }
 };
 //跳转搜索

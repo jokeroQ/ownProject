@@ -15,9 +15,9 @@ exports.register = async (req, res) => {
                 email
             });
     
-            res.status(201).json({ message: '用户注册成功', user: newUser });
+            res.status(201).json({ message: '用户注册成功', user: newUser,code:201 });
         } catch (error) {
-            res.status(500).json({ message: '用户注册失败', error });
+            res.status(500).json({ message: '用户注册失败', error,code:500 });
         }
 };
 
@@ -28,16 +28,16 @@ exports.login = async (req, res) => {
         const user = await User.findOne({ where: { username } });
 
         if (!user) {
-            return res.status(404).json({ message: '用户未找到' });
+            return res.status(404).json({ message: '用户未找到',code:404 });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
         if (!isMatch) {
-            return res.status(400).json({ message: '密码错误' });
+            return res.status(400).json({ message: '密码错误',code:400 });
         }
 
-        res.status(200).json({ message: '登录成功', user });
+        res.status(200).json({ message: '登录成功', user ,code:200});
     } catch (error) {
-        res.status(500).json({ message: '登录失败', error });
+        res.status(500).json({ message: '登录失败', error,code:500 });
     }
 };

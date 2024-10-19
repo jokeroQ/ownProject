@@ -28,19 +28,22 @@ import { reactive, ref } from "vue";
 import { Back } from "@element-plus/icons-vue";
 import axios from "axios";
 import { useRouter } from "vue-router";
+import { postRequest, getRequest } from '../../utils/httpService';
 const router = useRouter();
 const formLabelAlign = reactive({
   username: "",
   password: "",
   email: "",
 });
+interface User {
+  id: number;
+  username: string;
+  email: string;
+}
 //提交注册
 const onSubmit = async() => {
   try {
-    const response = await axios.post(
-      "http://localhost:3000/api/users/register",
-      formLabelAlign
-    );
+    const response = await postRequest<User>('/users/register', formLabelAlign);
     console.log("注册成功:", response.data);
   } catch (error) {
     console.error("注册失败:", error);

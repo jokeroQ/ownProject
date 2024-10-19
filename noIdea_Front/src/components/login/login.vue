@@ -36,23 +36,28 @@ import { reactive, ref } from "vue";
 import type { FormProps } from "element-plus";
 import { delay } from "@/utils/delay";
 import { useRouter } from "vue-router";
-import axios from "axios";
+import { postRequest, getRequest } from '../../utils/httpService';
 
 const labelPosition = ref<FormProps["labelPosition"]>("right");
 const formLabelAlign = reactive({
   username: "admin",
   password: "",
 });
+interface Info {
+  username: string;
+  password: string;
+}
 const isLoading = ref(false);
 const router = useRouter();
 const loginIn = async () => {
   try {
-    await axios.post("http://localhost:3000/api/users/login", formLabelAlign);
+    const res=await postRequest<Info>('/users/login',formLabelAlign);
+    console.log(res)
+    router.push("/home");
     ElMessage({
       message: "登录成功",
       type: "success",
     });
-    router.push("/home");
   } catch (error: any) {
     if (error.response) {
       const { data } = error.response;
@@ -64,7 +69,7 @@ const loginIn = async () => {
   }
 };
 const goRegister = () => {
-  router.push("./register");
+  router.push("/register");
 };
 </script>
 
