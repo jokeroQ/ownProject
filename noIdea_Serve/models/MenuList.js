@@ -10,6 +10,10 @@ const MenuList = sequelize.define('MenuList', {
       key: 'id',
     },
   },
+  order: {
+    type: DataTypes.INTEGER, // 用于记录菜单的顺序
+    allowNull: false,
+  },
   icon: DataTypes.STRING,
   title: DataTypes.STRING,
   type: DataTypes.STRING,
@@ -23,7 +27,7 @@ const MenuList = sequelize.define('MenuList', {
 MenuList.associate = (models) => {
   MenuList.belongsTo(models.Menu, {
     foreignKey: 'menu_id',
-    // as: 'menu'
+    as: 'menu'
   });
 };
 

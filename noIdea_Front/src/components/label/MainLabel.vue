@@ -1,14 +1,14 @@
 <template>
   <div class="mainLabel">
     <el-card
-      v-for="(i, index) in initData"
+      v-for="(i, index) in orderList"
       :key="i.targetUrl"
       class="box draggable-item"
-      @click="linkTo(i.targetUrl,i.type)"
+      @click="linkTo(i.targetUrl, i.type)"
       :draggable="editMode"
       @dragstart="onDragStart($event, index)"
       @dragover.prevent="onDragOver(index)"
-      @drop="onDrop($event, index)"
+      @drop="onDrop($event, i.id)"
       @mouseenter="handleHover(index)"
       @mouseleave="handleHover(-1)"
       :class="{ hoverStyle: hoverIndex == index }"
@@ -23,10 +23,14 @@
     <el-card v-if="editMode" class="box lastBox" @click="showAdd">
       <i-ep-plus></i-ep-plus>
     </el-card>
-    <el-dialog v-model="dialogVisible" title="添加标签" width="500">
+    <el-dialog
+      v-model="dialogVisible"
+      :title="dialogType == 'add' ? '添加标签' : '编辑标签'"
+      width="500"
+    >
       <el-form>
         <el-form-item>
-          <el-input placeholder="请输入目标网址" v-model="formData.url" />
+          <el-input placeholder="请输入目标网址" v-model="formData.targetUrl" />
         </el-form-item>
         <el-form-item>
           <el-input placeholder="请输入书签名称" v-model="formData.title" />
@@ -53,33 +57,41 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { defineProps, watch } from "vue";
+import { defineProps, watch, defineEmits } from "vue";
 import { labelData } from "./label";
 import { useRouter } from "vue-router";
+import {
+  swapSubItem,
+  addsubMenuItem,
+  deletesubMenuItem,
+  updatesubMenuItem,
+} from "@/api/menuApi/menu";
+import { error } from "console";
 const props = defineProps<{
-  activeTab: string;
   editMode: boolean;
+  activeLists: any[];
+  activeTab: string;
 }>();
-const router=useRouter();
+const router = useRouter();
 const currentIndex = ref<number | null>(null);
 const draggedItemIndex = ref<number | null>(null);
-const linkTo = (url: string,type:string) => {
-  if(type=='5'){
+const emit = defineEmits(["update-message"]);
+const dialogType = ref();
+const linkTo = (targetUrl: string, type: string) => {
+  if (type == "5") {
     router.push({
-      path:url
-    })
-  }else{
-    window.open(url, "_blank");
+      path: targetUrl,
+    });
+  } else {
+    window.open(targetUrl, "_blank");
   }
 };
 const dialogVisible = ref<boolean>(false);
 
-const initData = ref(labelData.filter((i) => i.type == props.activeTab));
-
 const hoverIndex = ref<number | null>(null);
 
 const formData = reactive({
-  url: "",
+  targetUrl: "",
   title: "",
   icon: "",
   desc: "",
@@ -91,12 +103,25 @@ const onDragStart = (event: DragEvent, index: number) => {
   (event.dataTransfer as DataTransfer).effectAllowed = "move";
 };
 
+const orderList = computed(() => {
+  return props.activeLists.sort((a: any, b: any) => a.order - b.order);
+});
+
 //拖拽改动
-const onDrop = (event: DragEvent, index: number) => {
+const onDrop = (event: DragEvent, id: number) => {
   if (draggedItemIndex.value !== null) {
-    const draggedItem = initData.value[draggedItemIndex.value];
-    initData.value.splice(draggedItemIndex.value, 1);
-    initData.value.splice(index, 0, draggedItem);
+    swapSubItem({
+      firstId: id,
+      secondId: props.activeLists[draggedItemIndex.value].id,
+    }).then((res) => {
+      if (res.status == 200) {
+        ElMessage({
+          message: "位置交换成功",
+          type: "success",
+        });
+        emit("update-message");
+      }
+    });
     draggedItemIndex.value = null;
     hoverIndex.value = null;
   }
@@ -108,10 +133,11 @@ const onDragOver = (index: number) => {
 
 const showAdd = () => {
   dialogVisible.value = true;
+  dialogType.value = "add";
   resetData();
 };
 const resetData = () => {
-  formData.url = "";
+  formData.targetUrl = "";
   formData.title = "";
   formData.icon = "";
   formData.desc = "";
@@ -126,52 +152,86 @@ const handleHover = (index: number) => {
 //编辑书签
 const editDetail = (i: any) => {
   dialogVisible.value = true;
-  formData.url = i.targetUrl;
+  dialogType.value = "update";
+  formData.targetUrl = i.targetUrl;
   formData.title = i.title;
   formData.id = i.id;
 };
 
 //删除书签
 const deleteItem = (id: string) => {
-  initData.value = initData.value.filter((i) => i.id !== id);
-  ElMessage({
-    message: "删除书签成功",
-    type: "success",
+  deletesubMenuItem({
+    subMenuId: id,
+  })
+    .then((res: any) => {
+      if (res.status == 200) {
+        ElMessage({
+          message: "删除书签成功",
+          type: "success",
+        });
+        emit("update-message");
+      }
+    })
+    .catch((error: any) => {
+      ElMessage({
+        message: error.message,
+        type: "success",
+      });
+    });
+};
+const addSubMenus = () => {
+  const params = {
+    ...formData,
+    menuId: props.activeTab,
+  };
+  addsubMenuItem(params).then((res: any) => {
+    if (res.status == 200) {
+      ElMessage({
+        message: "添加书签成功",
+        type: "success",
+      });
+      emit("update-message");
+    }
+  });
+};
+
+const editSubMenus = () => {
+  const params = {
+    ...formData,
+    subMenuId: formData.id,
+  };
+  updatesubMenuItem(params).then((res: any) => {
+    if (res.status == 200) {
+      ElMessage({
+        message: "更新书签成功",
+        type: "success",
+      });
+      emit("update-message");
+    }
   });
 };
 
 //添加或修改标签
 const confirmLabel = () => {
   dialogVisible.value = false;
-  if (formData.url && formData.title) {
-    let len = initData.value.filter((i) => i.id == formData.id).length;
-    if (len) {
-      initData.value.forEach((i) => {
-        if (i.id == formData.id) {
-          i.targetUrl = formData.url;
-          i.title = formData.title;
-        }
-      });
+  if (formData.targetUrl && formData.title) {
+    // let len = initData.value.filter((i) => i.id == formData.id).length;
+    if (dialogType.value == "update") {
+      editSubMenus();
     } else {
-      initData.value.push({
-        id: formData.title,
-        title: formData.title,
-        targetUrl: formData.url,
-        type: props.activeTab,
-        icon: formData.icon,
-      });
+      addSubMenus();
     }
   }
 };
 
-watch(
-  () => props.activeTab,
-  (newVal) => {
-    // console.log(props.activeTab);
-    initData.value = labelData.filter((i) => i.type == newVal);
-  }
-  // { immediate: true, deep: true }
-);
+// watch(
+//   () => props.activeTab,
+//   (newVal) => {
+//     // console.log(props.activeTab);
+//     initData.value = labelData.filter((i) => i.type == newVal);
+//   }
+// { immediate: true, deep: true }
+// );
 </script>
 <style lang="less" scoped>
 .mainLabel {

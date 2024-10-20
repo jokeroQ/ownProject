@@ -19,7 +19,7 @@ const Menu = sequelize.define('Menu', {
 Menu.associate = (models) => {
   Menu.hasMany(models.MenuList, {
     foreignKey: 'menu_id',
-    // as: 'menuLists' // 确保与 MenuService.js 中一致
+    as: 'menuLists' // 确保与 MenuService.js 中一致
   });
 };
 

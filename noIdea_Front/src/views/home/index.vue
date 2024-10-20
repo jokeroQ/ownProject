@@ -48,7 +48,7 @@
         ></el-input>
       </el-header>
       <el-main>
-        <MainLabel :activeTab="activeTab" :editMode="editMode"></MainLabel>
+        <MainLabel :activeTab="activeTab" :editMode="editMode" :activeLists="activeLists" @update-message="getMenu"></MainLabel>
       </el-main>
       <el-footer>
         <div class="bottom">
@@ -106,6 +106,10 @@ const index = ref<string>("");
 onMounted(() => {
   getMenu();
 });
+const activeLists=computed(()=>{
+  const data=state.menus.filter((i:any) => i.index == activeTab.value)[0]
+  return data?data.menuLists:[]
+})
 //获取最新的菜单
 const getMenu = async () => {
   getRequest("/menu/getMenus").then((res:any)=>{
