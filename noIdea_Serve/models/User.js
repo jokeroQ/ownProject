@@ -5,7 +5,6 @@ const User = sequelize.define('User', {
   username: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
   },
   password: {
     type: DataTypes.STRING,
@@ -14,7 +13,6 @@ const User = sequelize.define('User', {
   email: {
     type: DataTypes.STRING,
     allowNull: false,
-    unique: true
   }
 }, {
   // timestamps: true,  // 自动生成 createdAt 和 updatedAt 字段

@@ -247,6 +247,9 @@ const goSearch = () => {
 .edit {
   display: none;
 }
+.el-menu{
+  border:none
+}
 .el-menu-item {
   justify-content: space-between;
   &:hover .edit {

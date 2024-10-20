@@ -11,9 +11,16 @@ const Menu = sequelize.define('Menu', {
     allowNull: false
   }
 }, {
-  // timestamps: true,
   timestamps: false,
   updatedAt: false
 });
+
+// 添加关联关系
+Menu.associate = (models) => {
+  Menu.hasMany(models.MenuList, {
+    foreignKey: 'menu_id',
+    // as: 'menuLists' // 确保与 MenuService.js 中一致
+  });
+};
 
 module.exports = Menu;

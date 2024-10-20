@@ -1,9 +1,18 @@
-const Menu = require('../models/Menu');
+const { Menu, MenuList } = require('../models');
+// const Menu = require('../models/Menu');
+// const MenuList = require('../models/MenuList')
 
 // 获取所有菜单项
 exports.getAllMenuItems = async () => {
   try {
-    const menuItems = await Menu.findAll();  // 使用 Sequelize 查询
+    const menuItems = await Menu.findAll({
+      include: [
+        {
+          model: MenuList,
+          // as: 'menuLists' // 确保与模型定义中的别名一致
+        }
+      ]
+    });  // 使用 Sequelize 查询
     return menuItems;
   } catch (error) {
     console.error('Error fetching menu items:', error);
