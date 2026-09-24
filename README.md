@@ -2,7 +2,7 @@
 noIdea front end back-end
 仿流萤书签个人网站搭建的个人网站
 运行前准备工作/环境之类：
-安装对应软件包括但不限于vscode git mysql
+安装对应软件包括但不限于vscode git mysql navicat(图形化工具)
 git clone 将代码拉下来
 
 把 Git 目录添加到环境变量
@@ -27,3 +27,9 @@ Select-Object ProxyEnable, ProxyServer, AutoConfigURL
 
 git config --global http.proxy http://127.0.0.1:7897（ProxyServer）
 git config --global https.proxy http://127.0.0.1:7897（ProxyServer）
+
+mysql也需要在同样的地方添加环境变量
+C:\Program Files\MySQL\MySQL Server 26.7\bin
+
+下载navicat 16破解版图形化工具
+
