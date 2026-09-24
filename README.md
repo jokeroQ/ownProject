@@ -35,3 +35,6 @@ C:\Program Files\MySQL\MySQL Server 26.7\bin
 
 破解完之后先连接数据库新建noidea数据库然后运行sql文件
 cd到后端项目直接运行npm run start (需要提前安装好node，然后配置好node的环境变量）
+
+前端项目安装依赖npm install
+然后npm run dev
