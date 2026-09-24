@@ -33,3 +33,5 @@ C:\Program Files\MySQL\MySQL Server 26.7\bin
 
 下载navicat 16破解版图形化工具
 
+破解完之后先连接数据库新建noidea数据库然后运行sql文件
+cd到后端项目直接运行npm run start (需要提前安装好node，然后配置好node的环境变量）
