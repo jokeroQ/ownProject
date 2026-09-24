@@ -18,3 +18,12 @@ sysdm.cpl
 添加这一行，安装位置不同就对应修改：
 
 C:\Program Files\Git\cmd
+
+git pull失败解决
+
+终端执行下面代码，拿到ProxyServer
+Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' |
+Select-Object ProxyEnable, ProxyServer, AutoConfigURL
+
+git config --global http.proxy http://127.0.0.1:7897（ProxyServer）
+git config --global https.proxy http://127.0.0.1:7897（ProxyServer）
