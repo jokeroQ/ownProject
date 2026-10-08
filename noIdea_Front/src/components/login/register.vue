@@ -44,9 +44,17 @@ interface User {
 const onSubmit = async() => {
   try {
     const response = await postRequest<User>('/users/register', formLabelAlign);
-    console.log("注册成功:", response.data);
+    ElMessage({
+      message: "注册成功",
+      type: "success",
+    });
+    router.push("/");
   } catch (error) {
     console.error("注册失败:", error);
+    ElMessage({
+      message: "注册失败"+ error,
+      type: "success",
+    });
   }
 };
 const goBack = () => {

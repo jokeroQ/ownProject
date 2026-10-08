@@ -54,7 +54,7 @@ onMounted(() => {
   signaturePad.value = new SignaturePad(canvas);
 });
 const goBack = () => {
-  router.go(-1);
+  router.push("/home");
 };
 //清除签名
 const goClear = () => {
