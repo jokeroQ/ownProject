@@ -56,15 +56,54 @@ exports.getSubMenus = async (req, res) => {
 };
 
 // 添加子菜单
+// exports.addSubMenu = async (req, res) => {
+//     const menuId = req.params.menuId;
+//     const { title, icon, type, targetUrl } = req.body;
+//     try {
+//         const newSubMenu = await menuService.createSubMenu(menuId, { title, icon, type, targetUrl });
+//         res.status(201).json({ message: '子菜单项已添加', newSubMenu,status:200 });
+//     } catch (error) {
+//         res.status(400).json({ message: '添加子菜单项失败', error: error.message });
+//     }
+// };
 exports.addSubMenu = async (req, res) => {
-    const menuId = req.params.menuId;
-    const { title, icon, type, targetUrl } = req.body;
-    try {
-        const newSubMenu = await menuService.createSubMenu(menuId, { title, icon, type, targetUrl });
-        res.status(201).json({ message: '子菜单项已添加', newSubMenu,status:200 });
-    } catch (error) {
-        res.status(400).json({ message: '添加子菜单项失败', error: error.message });
-    }
+  const menuId = Number(req.params.menuId);
+  const { title, icon, type, targetUrl } = req.body;
+
+  if (!Number.isInteger(menuId) || menuId <= 0) {
+    return res.status(400).json({
+      message: "菜单 ID 不正确",
+      status: 400,
+    });
+  }
+
+  if (!title || !targetUrl) {
+    return res.status(400).json({
+      message: "书签名称和目标地址不能为空",
+      status: 400,
+    });
+  }
+
+  try {
+    const newSubMenu = await menuService.createSubMenu(menuId, {
+      title,
+      icon,
+      type,
+      targetUrl,
+    });
+
+    return res.status(201).json({
+      message: "子菜单项已添加",
+      data: newSubMenu,
+      status: 201,
+    });
+  } catch (error) {
+    return res.status(400).json({
+      message: "添加子菜单项失败",
+      error: error.message,
+      status: 400,
+    });
+  }
 };
 
 // 删除子菜单

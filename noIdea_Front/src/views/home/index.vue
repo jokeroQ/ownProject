@@ -44,11 +44,19 @@
           clearable
         >
           <template #append>
-            <el-button :icon="Search" @click="goSearch" /> </template
-        ></el-input>
+            <el-button :icon="Search" @click="goSearch" />
+          </template>
+        </el-input>
+
+        <el-button type="danger" plain @click="logout"> 退出登录 </el-button>
       </el-header>
       <el-main>
-        <MainLabel :activeTab="activeTab" :editMode="editMode" :activeLists="activeLists" @update-message="getMenu"></MainLabel>
+        <MainLabel
+          :activeTab="activeTab"
+          :editMode="editMode"
+          :activeLists="activeLists"
+          @update-message="getMenu"
+        ></MainLabel>
       </el-main>
       <el-footer>
         <div class="bottom">
@@ -89,6 +97,9 @@ import { Search } from "@element-plus/icons-vue";
 import { reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { postRequest, getRequest, putRequest } from "../../utils/httpService";
+import { useRouter } from "vue-router";
+import "element-plus/es/components/message/style/css";
+import "element-plus/es/components/message-box/style/css";  
 // const state = reactive({
 //   menuList: menuList,
 // });
@@ -96,6 +107,7 @@ const searchValue = ref<string>("");
 const activeTab = ref<string>("2");
 const dialogVisible = ref(false);
 const labelName = ref("");
+const router = useRouter();
 const state = reactive<any>({
   moto: getMotto(),
   menus: [],
@@ -106,20 +118,22 @@ const index = ref<string>("");
 onMounted(() => {
   getMenu();
 });
-const activeLists=computed(()=>{
-  const data=state.menus.filter((i:any) => i.index == activeTab.value)[0]
-  return data?data.menuLists:[]
-})
+const activeLists = computed(() => {
+  const data = state.menus.filter((i: any) => i.index == activeTab.value)[0];
+  return data ? data.menuLists : [];
+});
 //获取最新的菜单
 const getMenu = async () => {
-  getRequest("/menu/getMenus").then((res:any)=>{
-    state.menus = res.data;
-  }).catch((error:any)=>{
-    ElMessage({
+  getRequest("/menu/getMenus")
+    .then((res: any) => {
+      state.menus = res.data;
+    })
+    .catch((error: any) => {
+      ElMessage({
         message: error.message,
         type: "error",
       });
-  })
+    });
 };
 //切换菜单项
 const changeTab = (index: string) => {
@@ -204,7 +218,7 @@ const editMenus = async () => {
   }
 };
 //删除左侧菜单标签
-const deleteItem = async(index: string) => {
+const deleteItem = async (index: string) => {
   try {
     const res = await deleteMenuItem({ id: index });
     if (res.status == 200) {
@@ -219,7 +233,7 @@ const deleteItem = async(index: string) => {
       });
     }
     getMenu();
-  } catch (error:any) {
+  } catch (error: any) {
     ElMessage({
       message: error.message,
       type: "error",
@@ -232,6 +246,30 @@ const goSearch = () => {
     `https://www.baidu.com/s?ie=utf-8&word=${searchValue.value}`,
     "_blank"
   );
+};
+//退出登录
+const logout = async () => {
+  try {
+    await ElMessageBox.confirm(
+      "确定要退出登录吗？",
+      "退出登录",
+      {
+        confirmButtonText: "退出",
+        cancelButtonText: "取消",
+        type: "warning",
+      }
+    );
+
+    localStorage.removeItem("isLoggedIn");
+
+    await router.replace({
+      name: "login",
+    });
+
+    ElMessage.success("已退出登录");
+  } catch {
+    // 点击取消时无需处理
+  }
 };
 </script>
 <style lang="less" scoped>
@@ -251,8 +289,8 @@ const goSearch = () => {
 .edit {
   display: none;
 }
-.el-menu{
-  border:none
+.el-menu {
+  border: none;
 }
 .el-menu-item {
   justify-content: space-between;
@@ -264,7 +302,10 @@ const goSearch = () => {
   }
 }
 .header {
-  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
 }
 .full-height {
   height: 100%;

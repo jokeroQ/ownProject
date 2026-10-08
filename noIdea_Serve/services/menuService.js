@@ -75,12 +75,52 @@ exports.getSubMenus = async (menuId) => {
 };
 
 // 创建子菜单
+// exports.createSubMenu = async (menuId, data) => {
+//   try {
+//     const newSubMenu = await MenuList.create({ menu_id: menuId, ...data });
+//     return newSubMenu;
+//   } catch (error) {
+//     console.error('Error creating sub menu:', error);
+//     throw error;
+//   }
+// };
 exports.createSubMenu = async (menuId, data) => {
+  const transaction = await MenuList.sequelize.transaction();
+
   try {
-    const newSubMenu = await MenuList.create({ menu_id: menuId, ...data });
+    const parentMenu = await Menu.findByPk(menuId, {
+      transaction,
+    });
+
+    if (!parentMenu) {
+      throw new Error("所属菜单不存在");
+    }
+
+    const maxOrder = await MenuList.max("order", {
+      where: {
+        menu_id: menuId,
+      },
+      transaction,
+    });
+
+    const newSubMenu = await MenuList.create(
+      {
+        menu_id: Number(menuId),
+        title: data.title,
+        icon: data.icon || "",
+        type: data.type || "",
+        targetUrl: data.targetUrl,
+        order: maxOrder == null ? 1 : maxOrder + 1,
+      },
+      {
+        transaction,
+      }
+    );
+
+    await transaction.commit();
     return newSubMenu;
   } catch (error) {
-    console.error('Error creating sub menu:', error);
+    await transaction.rollback();
     throw error;
   }
 };

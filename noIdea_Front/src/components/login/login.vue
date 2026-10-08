@@ -7,6 +7,7 @@
         :label-position="labelPosition"
         label-width="auto"
         :model="formLabelAlign"
+        @submit.prevent="loginIn"
       >
         <el-form-item label="用户名:">
           <el-input v-model="formLabelAlign.username" />
@@ -21,7 +22,7 @@
         </el-form-item>
         <div class="btnGroup">
           <el-button @click="goRegister">注册</el-button>
-          <el-button type="primary" @click="loginIn" @keyup.enter="loginIn"
+          <el-button type="primary" native-type="submit"
             >登录</el-button
           >
         </div>
@@ -40,7 +41,7 @@ import { postRequest, getRequest } from '../../utils/httpService';
 
 const labelPosition = ref<FormProps["labelPosition"]>("right");
 const formLabelAlign = reactive({
-  username: "admin",
+  username: "cara",
   password: "",
 });
 interface Info {
@@ -50,22 +51,21 @@ interface Info {
 const isLoading = ref(false);
 const router = useRouter();
 const loginIn = async () => {
+  if (isLoading.value) return;
+
+  isLoading.value = true;
+
   try {
-    const res=await postRequest<Info>('/users/login',formLabelAlign);
-    console.log(res)
-    router.push("/home");
-    ElMessage({
-      message: "登录成功",
-      type: "success",
-    });
+    await postRequest<Info>("/users/login", formLabelAlign);
+
+    localStorage.setItem("isLoggedIn", "true");
+
+    ElMessage.success("登录成功");
+    await router.replace("/home");
   } catch (error: any) {
-    if (error.response) {
-      const { data } = error.response;
-      ElMessage({
-        message: data.message,
-        type: "error",
-      });
-    }
+    ElMessage.error(error.response?.data?.message ?? "登录失败");
+  } finally {
+    isLoading.value = false;
   }
 };
 const goRegister = () => {
