@@ -4,8 +4,8 @@
       <el-menu :default-active="activeTab" class="el-menu-vertical-demo">
         <el-menu-item-group>
           <el-menu-item
-            @click="changeTab(i.index)"
-            :index="i.index"
+            @click="changeTab(String(i.id))"
+            :index="String(i.id)"
             v-for="i in state.menus"
             :key="i.index"
             >{{ i.title }}
@@ -17,7 +17,7 @@
                 cancel-button-text="取消"
                 icon-color="#626AEF"
                 title="是否确定要删除该标签?"
-                @confirm.stop="deleteItem(i.index)"
+                @confirm.stop="deleteItem(String(i.id))"
               >
                 <template #reference>
                   <i-ep-delete></i-ep-delete>
@@ -98,13 +98,14 @@ import { reactive, ref } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { postRequest, getRequest, putRequest } from "../../utils/httpService";
 import { useRouter } from "vue-router";
+import { clearLogin } from '@/utils/auth';
 import "element-plus/es/components/message/style/css";
 import "element-plus/es/components/message-box/style/css";  
 // const state = reactive({
 //   menuList: menuList,
 // });
 const searchValue = ref<string>("");
-const activeTab = ref<string>("2");
+const activeTab = ref<string>("");
 const dialogVisible = ref(false);
 const labelName = ref("");
 const router = useRouter();
@@ -119,7 +120,7 @@ onMounted(() => {
   getMenu();
 });
 const activeLists = computed(() => {
-  const data = state.menus.filter((i: any) => i.index == activeTab.value)[0];
+  const data = state.menus.find((i: any) => String(i.id) === activeTab.value);
   return data ? data.menuLists : [];
 });
 //获取最新的菜单
@@ -127,6 +128,9 @@ const getMenu = async () => {
   getRequest("/menu/getMenus")
     .then((res: any) => {
       state.menus = res.data;
+      if (!state.menus.some((i: any) => String(i.id) === activeTab.value)) {
+        activeTab.value = state.menus.length ? String(state.menus[0].id) : '';
+      }
     })
     .catch((error: any) => {
       ElMessage({
@@ -170,7 +174,7 @@ const editDetail = (i: any) => {
   mode.value = "update";
   dialogVisible.value = true;
   labelName.value = i.title;
-  index.value = i.index;
+  index.value = String(i.id);
 };
 //添加标签
 const addType = async () => {
@@ -260,15 +264,20 @@ const logout = async () => {
       }
     );
 
-    localStorage.removeItem("isLoggedIn");
+    await postRequest('/users/logout', {});
+    clearLogin();
+    state.menus = [];
+    activeTab.value = '';
 
     await router.replace({
       name: "login",
     });
 
     ElMessage.success("已退出登录");
-  } catch {
-    // 点击取消时无需处理
+  } catch (error: any) {
+    if (error !== 'cancel' && error !== 'close') {
+      ElMessage.error(error.response?.data?.message ?? '退出失败，请重试');
+    }
   }
 };
 </script>

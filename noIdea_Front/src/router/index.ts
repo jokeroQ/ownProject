@@ -5,6 +5,8 @@ import {
 } from "vue-router";
 
 import homeRoutes from "./modules/home";
+import { getToken } from '@/utils/auth';
+import { getRequest } from '@/api/request';
 
 const routes: Array<RouteRecordRaw> = [
   ...homeRoutes,
@@ -27,9 +29,13 @@ const router = createRouter({
   routes,
 });
 
-router.beforeEach((to) => {
-  const isLoggedIn =
-    localStorage.getItem("isLoggedIn") === "true";
+router.beforeEach(async (to) => {
+  const needsCheck = to.meta.requiresAuth || (to.name === 'login' && getToken());
+  let isLoggedIn = false;
+  if (needsCheck && getToken()) {
+    try { await getRequest('/users/me'); isLoggedIn = true; }
+    catch { isLoggedIn = false; }
+  }
 
   if (to.meta.requiresAuth && !isLoggedIn) {
     return {

@@ -16,9 +16,11 @@ const MenuList = sequelize.define('MenuList', {
   },
   icon: DataTypes.STRING,
   title: DataTypes.STRING,
+  desc: DataTypes.STRING,
   type: DataTypes.STRING,
   targetUrl: DataTypes.STRING,
 }, {
+  tableName: 'menulists',
   timestamps: false,
   updatedAt: false
 });

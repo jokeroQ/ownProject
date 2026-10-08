@@ -24,11 +24,10 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive, ref } from "vue";
+import { reactive } from "vue";
 import { Back } from "@element-plus/icons-vue";
-import axios from "axios";
 import { useRouter } from "vue-router";
-import { postRequest, getRequest } from '../../utils/httpService';
+import { postRequest } from '../../utils/httpService';
 const router = useRouter();
 const formLabelAlign = reactive({
   username: "",
@@ -43,17 +42,17 @@ interface User {
 //提交注册
 const onSubmit = async() => {
   try {
-    const response = await postRequest<User>('/users/register', formLabelAlign);
+    await postRequest<User>('/users/register', formLabelAlign);
     ElMessage({
       message: "注册成功",
       type: "success",
     });
     router.push("/");
-  } catch (error) {
+  } catch (error: any) {
     console.error("注册失败:", error);
     ElMessage({
-      message: "注册失败"+ error,
-      type: "success",
+      message: error.response?.data?.message ?? '注册失败',
+      type: "error",
     });
   }
 };

@@ -2,6 +2,11 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db'); // 引入 Sequelize 连接实例
 
 const Menu = sequelize.define('Menu', {
+  user_id: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+    references: { model: 'users', key: 'id' },
+  },
   index: {
     type: DataTypes.STRING,
     allowNull: true,
@@ -11,6 +16,7 @@ const Menu = sequelize.define('Menu', {
     allowNull: false
   }
 }, {
+  tableName: 'menus',
   timestamps: false,
   updatedAt: false
 });

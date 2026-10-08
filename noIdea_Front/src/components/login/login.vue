@@ -35,33 +35,30 @@
 import GradientBackground from "../../components/background/GradientBackground.vue";
 import { reactive, ref } from "vue";
 import type { FormProps } from "element-plus";
-import { delay } from "@/utils/delay";
-import { useRouter } from "vue-router";
-import { postRequest, getRequest } from '../../utils/httpService';
+import { useRouter, useRoute } from "vue-router";
+import { saveLogin, type LoginResponse } from '@/utils/auth';
+import { postRequest } from '../../utils/httpService';
 
 const labelPosition = ref<FormProps["labelPosition"]>("right");
 const formLabelAlign = reactive({
   username: "cara",
   password: "",
 });
-interface Info {
-  username: string;
-  password: string;
-}
 const isLoading = ref(false);
 const router = useRouter();
+const route = useRoute();
 const loginIn = async () => {
   if (isLoading.value) return;
 
   isLoading.value = true;
 
   try {
-    await postRequest<Info>("/users/login", formLabelAlign);
-
-    localStorage.setItem("isLoggedIn", "true");
+    const response = await postRequest<LoginResponse>("/users/login", formLabelAlign);
+    saveLogin(response);
 
     ElMessage.success("登录成功");
-    await router.replace("/home");
+    const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/home';
+    await router.replace(target.startsWith('/') && !target.startsWith('//') && target !== '/' ? target : '/home');
   } catch (error: any) {
     ElMessage.error(error.response?.data?.message ?? "登录失败");
   } finally {

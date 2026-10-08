@@ -1,140 +1,16 @@
-const menuService = require('../services/menuService');
-
-// 获取菜单列表
-exports.getMenu = async (req, res) => {
-    try {
-        const menu = await menuService.getAllMenuItems();
-        res.json({ data: menu, status: 200, message: "获取菜单成功" });
-    } catch (error) {
-        res.status(500).json({ message: '获取菜单失败', error: error.message });
-    }
-};
-
-// 添加菜单项
-exports.addMenu = async (req, res) => {
-    const { title } = req.body;
-    try {
-        const newItem = await menuService.createMenuItem(title);
-        res.status(201).json({ message: '菜单项已添加', newItem });
-    } catch (error) {
-        res.status(400).json({ message: '添加菜单项失败', error: error.message });
-    }
-};
-
-// 删除菜单项
-exports.deleteMenu = async (req, res) => {
-    const id = req.params.id;
-    try {
-        await menuService.deleteMenuItem(id);
-        res.json({ message: '菜单项已删除',status:200 });
-    } catch (error) {
-        res.status(500).json({ message: '删除菜单项失败', error: error.message,status:500 });
-    }
-};
-
-// 更新菜单项
-exports.updateMenu = async (req, res) => {
-    const id = req.params.id;
-    const { index, title } = req.body;
-    try {
-        await menuService.updateMenuItem(id, index, title);
-        res.json({ message: '菜单项已更新' });
-    } catch (error) {
-        res.status(500).json({ message: '更新菜单项失败', error: error.message });
-    }
-};
-
-// 获取指定菜单的子菜单
-exports.getSubMenus = async (req, res) => {
-    const menuId = req.params.menuId;
-    try {
-        const subMenus = await menuService.getSubMenus(menuId);
-        res.json({ data: subMenus, status: 200, message: "获取子菜单成功" });
-    } catch (error) {
-        res.status(500).json({ message: '获取子菜单失败', error: error.message });
-    }
-};
-
-// 添加子菜单
-// exports.addSubMenu = async (req, res) => {
-//     const menuId = req.params.menuId;
-//     const { title, icon, type, targetUrl } = req.body;
-//     try {
-//         const newSubMenu = await menuService.createSubMenu(menuId, { title, icon, type, targetUrl });
-//         res.status(201).json({ message: '子菜单项已添加', newSubMenu,status:200 });
-//     } catch (error) {
-//         res.status(400).json({ message: '添加子菜单项失败', error: error.message });
-//     }
-// };
-exports.addSubMenu = async (req, res) => {
-  const menuId = Number(req.params.menuId);
-  const { title, icon, type, targetUrl } = req.body;
-
-  if (!Number.isInteger(menuId) || menuId <= 0) {
-    return res.status(400).json({
-      message: "菜单 ID 不正确",
-      status: 400,
-    });
-  }
-
-  if (!title || !targetUrl) {
-    return res.status(400).json({
-      message: "书签名称和目标地址不能为空",
-      status: 400,
-    });
-  }
-
+const service = require('../services/menuService');
+const handler = (operation, message, status = 200) => async (req, res, next) => {
   try {
-    const newSubMenu = await menuService.createSubMenu(menuId, {
-      title,
-      icon,
-      type,
-      targetUrl,
-    });
-
-    return res.status(201).json({
-      message: "子菜单项已添加",
-      data: newSubMenu,
-      status: 201,
-    });
-  } catch (error) {
-    return res.status(400).json({
-      message: "添加子菜单项失败",
-      error: error.message,
-      status: 400,
-    });
-  }
+    const data = await operation(req);
+    res.status(status).json({ message, status, data });
+  } catch (error) { next(error); }
 };
-
-// 删除子菜单
-exports.deleteSubMenu = async (req, res) => {
-    const subMenuId = req.params.subMenuId;
-    try {
-        await menuService.deleteSubMenu(subMenuId);
-        res.json({ message: '子菜单项已删除', status: 200 });
-    } catch (error) {
-        res.status(500).json({ message: '删除子菜单项失败', error: error.message, status: 500 });
-    }
-};
-
-// 更新子菜单
-exports.updateSubMenu = async (req, res) => {
-    const subMenuId = req.params.subMenuId;
-    const { title, icon, type, targetUrl } = req.body;
-    try {
-        await menuService.updateSubMenu(subMenuId, { title, icon, type, targetUrl });
-        res.json({ message: '子菜单项已更新', status: 200 });
-    } catch (error) {
-        res.status(500).json({ message: '更新子菜单项失败', error: error.message });
-    }
-};
-//更换菜单位置
-exports.swapMenuOrder = async (req, res) => {
-    const { firstId, secondId } = req.body;
-    try {
-        await menuService.swapOrder(firstId, secondId);
-        res.json({ message: '菜单项位置已调换', status: 200 });
-    } catch (error) {
-        res.status(500).json({ message: '调换位置失败', error: error.message });
-    }
-};
+exports.getMenu = handler(req => service.getAllMenuItems(req.userId), '获取菜单成功');
+exports.addMenu = handler(req => service.createMenuItem(req.body.title, req.userId), '菜单项已添加', 201);
+exports.deleteMenu = handler(req => service.deleteMenuItem(req.params.id, req.userId), '菜单项已删除');
+exports.updateMenu = handler(req => service.updateMenuItem(req.params.id, req.body.title, req.userId), '菜单项已更新');
+exports.getSubMenus = handler(req => service.getSubMenus(req.params.menuId, req.userId), '获取子菜单成功');
+exports.addSubMenu = handler(req => service.createSubMenu(req.params.menuId, req.body, req.userId), '子菜单项已添加', 201);
+exports.deleteSubMenu = handler(req => service.deleteSubMenu(req.params.subMenuId, req.userId), '子菜单项已删除');
+exports.updateSubMenu = handler(req => service.updateSubMenu(req.params.subMenuId, req.body, req.userId), '子菜单项已更新');
+exports.swapMenuOrder = handler(req => service.swapOrder(req.body.firstId, req.body.secondId, req.userId), '位置交换成功');

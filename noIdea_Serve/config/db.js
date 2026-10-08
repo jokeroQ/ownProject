@@ -1,11 +1,15 @@
-// config/db.js
 const { Sequelize } = require('sequelize');
-
-// 创建 Sequelize 实例，连接 MySQL 数据库
-const sequelize = new Sequelize('noIdea', 'root', '1216', {
-  host: 'localhost',  // 数据库主机
-  dialect: 'mysql',   // 数据库类型
-  logging: false      // 禁用 Sequelize 的 SQL 日志输出
-});
-
+// Production credentials are supplied through the environment, never committed.
+const sequelize = new Sequelize(
+  process.env.DB_NAME || 'noIdea',
+  process.env.DB_USER || 'root',
+  process.env.DB_PASSWORD || '',
+  {
+    host: process.env.DB_HOST || 'localhost',
+    port: Number(process.env.DB_PORT || 3306),
+    dialect: 'mysql',
+    dialectOptions: process.env.DB_SOCKET ? { socketPath: process.env.DB_SOCKET } : {},
+    logging: false,
+  }
+);
 module.exports = sequelize;

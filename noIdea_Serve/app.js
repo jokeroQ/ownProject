@@ -1,29 +1,28 @@
 const express = require('express');
-const app = express();
-const sequelize = require('./config/db');
-const userRoutes = require('./routes/userRoutes'); 
-const menuRoutes = require('./routes/menuRoutes');
-app.use(express.json());
 const cors = require('cors');
-
-// 中间件
-app.use(express.json()); // 解析 JSON 请求体
+const { sequelize, Menu, Session, BookmarkTemplate } = require('./models');
+const { requireAuth } = require('./middleware/auth');
+const app = express();
 app.use(cors());
-sequelize.authenticate()
-    .then(() => {
-        console.log('数据库连接成功！');
-        return sequelize.sync({ alter: true }); // 同步模型到数据库
-    })
-    .then(() => {
-        console.log('所有模型已成功同步');
-    })
-    .catch((err) => {
-        console.error('数据库连接失败：', err);
-    });
-app.use('/api/users', userRoutes);
-app.use('/api/menu', menuRoutes);
-// 启动服务器
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`服务器正在运行在端口 ${PORT}`);
+app.use(express.json());
+app.use('/api/users', require('./routes/userRoutes'));
+app.use('/api/menu', requireAuth, require('./routes/menuRoutes'));
+app.use((error, req, res, next) => {
+  if (res.headersSent) return next(error);
+  const status = error.status || 500;
+  if (status >= 500) console.error(error);
+  res.status(status).json({ message: status >= 500 ? '服务器错误，请稍后重试' : error.message, status });
 });
+async function start() {
+  await sequelize.authenticate();
+  // No sync({alter:true}): schema changes are explicit, reviewed migrations.
+  await Menu.findOne({ attributes: ['id', 'user_id'] });
+  await Session.findOne();
+  if (!await BookmarkTemplate.findByPk(1)) throw new Error('请先执行 npm run migrate:user-data');
+  return app.listen(Number(process.env.PORT || 3000), () => console.log('服务器已启动，数据库和用户模板就绪'));
+}
+if (require.main === module) start().catch(error => {
+  console.error('启动失败，请检查数据库配置并执行迁移：', error.message);
+  process.exitCode = 1;
+});
+module.exports = { app, start };

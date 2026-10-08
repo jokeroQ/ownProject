@@ -15,6 +15,7 @@ const User = sequelize.define('User', {
     allowNull: false,
   }
 }, {
+  tableName: 'users',
   // timestamps: true,  // 自动生成 createdAt 和 updatedAt 字段
   createdAt: 'created_at',  // 映射到数据库中的 created_at 字段
   updatedAt: false

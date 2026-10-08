@@ -2,13 +2,14 @@
   <div class="mainLabel">
     <el-card
       v-for="(i, index) in orderList"
-      :key="i.targetUrl"
+      :key="i.id"
       class="box draggable-item"
-      @click="linkTo(i.targetUrl, i.type)"
+      @click="linkTo(i.targetUrl)"
+      :title="i.desc || i.title"
       :draggable="editMode"
       @dragstart="onDragStart($event, index)"
       @dragover.prevent="onDragOver(index)"
-      @drop="onDrop($event, i.id)"
+      @drop.stop="onDrop($event, i.id)"
       @mouseenter="handleHover(index)"
       @mouseleave="handleHover(-1)"
       :class="{ hoverStyle: hoverIndex == index }"
@@ -57,8 +58,7 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { defineProps, watch, defineEmits } from "vue";
-import { labelData } from "./label";
+import { computed, reactive, ref } from "vue";
 import { useRouter } from "vue-router";
 import {
   swapSubItem,
@@ -66,7 +66,6 @@ import {
   deletesubMenuItem,
   updatesubMenuItem,
 } from "@/api/menuApi/menu";
-import { error } from "console";
 const props = defineProps<{
   editMode: boolean;
   activeLists: any[];
@@ -77,8 +76,8 @@ const currentIndex = ref<number | null>(null);
 const draggedItemIndex = ref<number | null>(null);
 const emit = defineEmits(["update-message"]);
 const dialogType = ref();
-const linkTo = (targetUrl: string, type: string) => {
-  if (type == "5") {
+const linkTo = (targetUrl: string) => {
+  if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
     router.push({
       path: targetUrl,
     });
@@ -104,7 +103,7 @@ const onDragStart = (event: DragEvent, index: number) => {
 };
 
 const orderList = computed(() => {
-  return props.activeLists.sort((a: any, b: any) => a.order - b.order);
+  return [...props.activeLists].sort((a: any, b: any) => a.order - b.order);
 });
 
 //拖拽改动
@@ -112,7 +111,7 @@ const onDrop = (event: DragEvent, id: number) => {
   if (draggedItemIndex.value !== null) {
     swapSubItem({
       firstId: id,
-      secondId: props.activeLists[draggedItemIndex.value].id,
+      secondId: orderList.value[draggedItemIndex.value].id,
     }).then((res) => {
       if (res.status == 200) {
         ElMessage({
@@ -156,6 +155,8 @@ const editDetail = (i: any) => {
   formData.targetUrl = i.targetUrl;
   formData.title = i.title;
   formData.id = i.id;
+  formData.icon = i.icon || '';
+  formData.desc = i.desc || '';
 };
 
 //删除书签
@@ -174,54 +175,47 @@ const deleteItem = (id: string) => {
     })
     .catch((error: any) => {
       ElMessage({
-        message: error.message,
-        type: "success",
+        message: error.response?.data?.message ?? error.message,
+        type: "error",
       });
     });
 };
-const addSubMenus = () => {
+const addSubMenus = async () => {
   const params = {
     ...formData,
     menuId: props.activeTab,
   };
-  addsubMenuItem(params).then((res: any) => {
-    if (res.status == 200) {
-      ElMessage({
-        message: "添加书签成功",
-        type: "success",
-      });
-      emit("update-message");
-    }
-  });
+  const res: any = await addsubMenuItem(params);
+  if (res.status === 201) {
+    ElMessage.success("添加书签成功");
+    emit("update-message");
+  }
 };
 
-const editSubMenus = () => {
+const editSubMenus = async () => {
   const params = {
     ...formData,
     subMenuId: formData.id,
   };
-  updatesubMenuItem(params).then((res: any) => {
-    if (res.status == 200) {
-      ElMessage({
-        message: "更新书签成功",
-        type: "success",
-      });
-      emit("update-message");
-    }
-  });
+  const res: any = await updatesubMenuItem(params);
+  if (res.status === 200) {
+    ElMessage.success("更新书签成功");
+    emit("update-message");
+  }
 };
 
 //添加或修改标签
-const confirmLabel = () => {
-  dialogVisible.value = false;
+const confirmLabel = async () => {
   if (formData.targetUrl && formData.title) {
     // let len = initData.value.filter((i) => i.id == formData.id).length;
     if (dialogType.value == "update") {
-      editSubMenus();
+      try { await editSubMenus(); dialogVisible.value = false; }
+      catch (error: any) { ElMessage.error(error.response?.data?.message ?? '更新失败'); }
     } else {
-      addSubMenus();
+      try { await addSubMenus(); dialogVisible.value = false; }
+      catch (error: any) { ElMessage.error(error.response?.data?.message ?? '添加失败'); }
     }
-  }
+  } else { ElMessage.warning('请填写网址和书签名称'); }
 };
 
 // watch(
