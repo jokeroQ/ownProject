@@ -41,10 +41,11 @@
 
 <script setup lang="ts">
 import { Back } from "@element-plus/icons-vue";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { onMounted, ref } from "vue";
 import SignaturePad from "signature_pad";
 const router = useRouter();
+const route = useRoute();
 const signatureCanvas = ref();
 const signatureImg = ref();
 const signaturePad = ref();
@@ -54,7 +55,10 @@ onMounted(() => {
   signaturePad.value = new SignaturePad(canvas);
 });
 const goBack = () => {
-  router.push("/home");
+  router.push({
+    name: 'home',
+    query: typeof route.query.fromCategory === 'string' ? { category: route.query.fromCategory } : {},
+  });
 };
 //清除签名
 const goClear = () => {

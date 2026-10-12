@@ -78,8 +78,11 @@ const emit = defineEmits(["update-message"]);
 const dialogType = ref();
 const linkTo = (targetUrl: string) => {
   if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
+    const destination = router.resolve(targetUrl);
     router.push({
-      path: targetUrl,
+      path: destination.path,
+      query: { ...destination.query, fromCategory: props.activeTab },
+      hash: destination.hash,
     });
   } else {
     window.open(targetUrl, "_blank");
