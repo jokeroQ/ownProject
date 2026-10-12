@@ -320,7 +320,7 @@ const logout = async () => {
   height: 100%;
   width: 100vw;
   .el-aside {
-    border-right: 1px solid #f1f1f1;
+    border-right: 1px solid var(--el-border-color-light);
     display: flex;
     flex-direction: column;
     justify-content: space-between;

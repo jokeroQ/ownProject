@@ -252,11 +252,11 @@ const confirmLabel = async () => {
       width: 100%;
     }
     &:hover {
-      background-color: antiquewhite;
+      background-color: var(--el-fill-color-light);
     }
     &.hoverStyle {
       // background-color: lightblue; // 悬停时的背景色
-      border-top: 2px dashed blue;
+      border-top: 2px dashed var(--el-color-primary);
     }
     .edit {
       display: flex;

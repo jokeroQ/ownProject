@@ -6,7 +6,7 @@
         ref="signatureCanvas"
         width="600"
         height="400"
-        style="border: 1px solid #000"
+        style="border: 1px solid var(--el-border-color); background: white"
       ></canvas>
       <div class="controls mt-4">
         <el-button @click="goClear">清空</el-button>

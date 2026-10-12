@@ -7,11 +7,13 @@ export function saveLogin(response: LoginResponse) {
   localStorage.setItem('token', response.token);
   localStorage.setItem('user', JSON.stringify(response.user));
   localStorage.removeItem('isLoggedIn');
+  window.dispatchEvent(new Event('auth-changed'));
 }
 export function clearLogin() {
   localStorage.removeItem('token');
   localStorage.removeItem('user');
   localStorage.removeItem('isLoggedIn');
+  window.dispatchEvent(new Event('auth-changed'));
 }
 export function configureAuth(client: AxiosInstance) {
   client.interceptors.request.use(config => {

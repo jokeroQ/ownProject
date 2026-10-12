@@ -1,8 +1,8 @@
 <template>
   <div>
-    <select name="pets" @change="changeTheme">
-      <option value="default">默认色</option>
-      <option value="black">黑色</option>
+    <select name="theme" :value="themeState.settings.mode" :disabled="themeState.loading" @change="changeTheme">
+      <option value="light">浅色</option>
+      <option value="dark">深色</option>
     </select>
     <h2>对应色卡匹配</h2>
     <div class="main">
@@ -16,14 +16,14 @@
   
 <script setup lang="ts">
 import { ref } from "vue";
-import { useStore } from "vuex";
+import { ElMessage } from 'element-plus';
+import { themeState, saveTheme } from '@/utils/theme';
 // import { computed } from 'vue';
 
-const store = useStore();
 const colorList = ref([
   "--font-primary",
   "--font-highlight",
-  "--background-Header",
+  "--background-header",
   "--background-aside",
   "--background-main",
 ]);
@@ -32,9 +32,10 @@ const colorList = ref([
 // const currentTheme = computed(() => store.getters.currentTheme);
 
 // 切换主题的方法
-const changeTheme = (e: Event) => {
+const changeTheme = async (e: Event) => {
   const target = e.target as HTMLSelectElement;
-  store.dispatch("setTheme", target.value);
+  try { await saveTheme({ ...themeState.settings, mode: target.value as 'light' | 'dark' }); }
+  catch { target.value = themeState.settings.mode; ElMessage.error('主题保存失败'); }
 };
 // const handleChange = (e: Event) => {
 //   window.document.documentElement.setAttribute(

@@ -5,6 +5,7 @@ const db = {
   MenuList: require('./MenuList'),
   Session: require('./Session'),
   BookmarkTemplate: require('./BookmarkTemplate'),
+  UserTheme: require('./UserTheme'),
   sequelize,
 };
 for (const model of Object.values(db)) {

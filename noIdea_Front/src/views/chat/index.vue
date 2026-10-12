@@ -126,23 +126,23 @@ const switchMsg = (id: string) => {
     height: 50px;
     border-radius: 4px;
     display: inline-block;
-    background-color: orange;
+    background-color: var(--el-color-primary);
     margin-right: 12px;
   }
   .left {
     width: 300px;
-    background-color: antiquewhite;
+    background-color: var(--theme-surface);
     .top {
       text-align: center;
       margin-top: 20px;
       padding-bottom: 12px;
-      border-bottom: 1px solid #f6f6f6;
+      border-bottom: 1px solid var(--el-border-color-light);
       span {
         width: 50px;
         height: 50px;
         border-radius: 50%;
         display: inline-block;
-        background-color: burlywood;
+        background-color: var(--el-color-primary-light-5);
         text-align: center;
         line-height: 50px;
       }
@@ -151,13 +151,13 @@ const switchMsg = (id: string) => {
       .item {
         display: flex;
         padding: 12px;
-        border-bottom: 1px solid #f6f6f6;
+        border-bottom: 1px solid var(--el-border-color-light);
         &:hover {
-          background-color: skyblue;
+          background-color: var(--el-color-primary-light-9);
           cursor: pointer;
         }
         &.active {
-          background-color: skyblue;
+          background-color: var(--el-color-primary-light-9);
         }
       }
     }
@@ -185,7 +185,7 @@ const switchMsg = (id: string) => {
         }
         .msg {
           padding: 4px 8px;
-          background-color: greenyellow;
+          background-color: var(--el-color-primary-light-7);
           border-radius: 6px;
           position: relative;
           max-width: 60%;
@@ -200,7 +200,7 @@ const switchMsg = (id: string) => {
             width: 0;
             height: 0;
             border: 8px solid transparent;
-            border-right-color: greenyellow;
+            border-right-color: var(--el-color-primary-light-7);
           }
           &.rgt::after {
             content: "";
@@ -210,7 +210,7 @@ const switchMsg = (id: string) => {
             width: 0;
             height: 0;
             border: 8px solid transparent;
-            border-left-color: greenyellow;
+            border-left-color: var(--el-color-primary-light-7);
           }
           &.rgt {
             margin-right: 20px;

@@ -4,6 +4,8 @@ const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
 const mysql = require('mysql2/promise');
+const os = require('node:os');
+const sharp = require('sharp');
 
 test('数据库迁移、默认副本和用户数据隔离', async t => {
   const database = `ownproject_test_${crypto.randomBytes(8).toString('hex')}`;
@@ -13,10 +15,12 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     socketPath: process.env.DB_SOCKET, multipleStatements: true,
   });
   let sequelize, server;
+  const uploadDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ownproject-theme-test-'));
+  process.env.THEME_UPLOAD_DIR = uploadDir;
   try {
     await admin.query(`CREATE DATABASE \`${database}\``);
     await admin.query(`USE \`${database}\``);
-    await admin.query(fs.readFileSync(path.resolve(__dirname, '../../noidea.sql'), 'utf8'));
+    await admin.query(fs.readFileSync(path.resolve(__dirname, 'fixtures/legacy.sql'), 'utf8'));
     process.env.DB_NAME = database;
     const models = require('../models');
     sequelize = models.sequelize;
@@ -30,6 +34,7 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     });
     const cara = await User.create({ username: 'cara', email: 'cara-test@example.test', password: await bcrypt.hash(password, 10) });
     await migrate();
+    await require('../migrations/themes')();
     const snapshot = JSON.parse(JSON.stringify((await BookmarkTemplate.findByPk(1)).content));
     await t.test('旧记录归 cara，模板独立；重复迁移保持记录', async () => {
       const old = await Menu.findAll({ where: { user_id: cara.id }, order: [['id', 'ASC']] });
@@ -128,6 +133,60 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
         assert.equal(await User.count({ where: { username: 'rollback-user' } }), 0);
       } finally { await BookmarkTemplate.update({ id: 1 }, { where: { id: 2 } }); }
     });
+    await t.test('主题迁移可重跑、偏好按用户保存', async () => {
+      assert.deepEqual((await request('GET', '/theme', alice)).body.data, {
+        mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false,
+      });
+      assert.equal((await request('GET', '/theme')).status, 401);
+      const updated = await request('PUT', '/theme', alice, { mode: 'dark', primaryColor: '#7c3aed', overlay: 0.65, user_id: cara.id });
+      assert.equal(updated.status, 200);
+      await require('../migrations/themes')();
+      assert.deepEqual((await request('GET', '/theme', alice)).body.data, updated.body.data);
+      assert.equal((await request('GET', '/theme', bob)).body.data.mode, 'light');
+      for (const invalid of [{ mode: 'unknown' }, { primaryColor: 'red' }, { overlay: 1 }, { overlay: '0.4' }]) {
+        assert.equal((await request('PUT', '/theme', alice, { mode: 'light', primaryColor: '#409eff', overlay: 0.4, ...invalid })).status, 400);
+      }
+    });
+    const upload = async (token, buffer, type = 'image/png') => {
+      const response = await fetch(base + '/theme/background', { method: 'PUT', headers: {
+        'Content-Type': type, ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      }, body: buffer });
+      return { status: response.status, body: await response.json() };
+    };
+    await t.test('个人图片解码重编码、限制大小和格式、阻止跨用户读取', async () => {
+      const image = await sharp({ create: { width: 2800, height: 100, channels: 3, background: '#e11d48' } }).png().toBuffer();
+      assert.equal((await upload(null, image)).status, 401);
+      assert.equal((await upload(alice, image)).status, 200);
+      const response = await fetch(base + '/theme/background', { headers: { Authorization: `Bearer ${alice}` } });
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), 'image/webp');
+      assert.equal(response.headers.get('cache-control'), 'private, no-store');
+      const metadata = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+      assert.equal(metadata.format, 'webp'); assert.equal(metadata.width, 2560);
+      assert.equal((await fetch(base + `/theme/background?user_id=${aliceMenus[0].user_id}`, { headers: { Authorization: `Bearer ${bob}` } })).status, 404);
+      for (const [buffer, type] of [[Buffer.from('not an image'), 'image/png'], [Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"></svg>'), 'image/png'], [image, 'text/plain']]) {
+        assert.equal((await upload(alice, buffer, type)).status, 400);
+      }
+      assert.equal((await upload(alice, Buffer.alloc(5 * 1024 * 1024 + 1))).status, 413);
+      assert.equal((await request('GET', '/theme', alice)).body.data.hasBackground, true);
+      assert.equal(fs.readdirSync(uploadDir).length, 1);
+    });
+    await t.test('并发替换不遗留图片，移除与恢复默认仅影响本人', async () => {
+      const image = await sharp({ create: { width: 30, height: 20, channels: 3, background: '#059669' } }).jpeg().toBuffer();
+      const concurrent = await Promise.all([upload(alice, image, 'image/jpeg'), upload(alice, image, 'image/jpeg')]);
+      assert.ok(concurrent.every(result => result.status === 200));
+      assert.equal(fs.readdirSync(uploadDir).length, 1);
+      await upload(bob, image, 'image/jpeg');
+      assert.equal(fs.readdirSync(uploadDir).length, 2);
+      assert.equal((await request('DELETE', '/theme/background', alice)).body.data.hasBackground, false);
+      assert.equal((await request('GET', '/theme', alice)).body.data.mode, 'dark');
+      assert.equal(fs.readdirSync(uploadDir).length, 1);
+      await upload(alice, image, 'image/jpeg');
+      const reset = await request('DELETE', '/theme', alice);
+      assert.deepEqual(reset.body.data, { mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false });
+      assert.equal((await request('GET', '/theme', bob)).body.data.hasBackground, true);
+      assert.equal(fs.readdirSync(uploadDir).length, 1);
+    });
     await t.test('未登录、伪造、过期、退出凭证均无法访问', async () => {
       assert.equal((await request('GET', '/menu/getMenus')).status, 401);
       assert.equal((await request('GET', '/menu/getMenus', crypto.randomBytes(32).toString('hex'))).status, 401);
@@ -145,5 +204,6 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     if (sequelize) await sequelize.close();
     await admin.query(`DROP DATABASE IF EXISTS \`${database}\``);
     await admin.end();
+    fs.rmSync(uploadDir, { recursive: true, force: true });
   }
 });

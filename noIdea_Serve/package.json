@@ -5,6 +5,7 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "migrate:user-data": "node migrations/user-data.js",
+    "migrate:themes": "node migrations/themes.js",
     "dev": "nodemon app.js",
     "start": "node app.js"
   },
@@ -17,7 +18,8 @@
     "cors": "^2.8.5",
     "express": "^4.21.1",
     "mysql2": "^3.11.3",
-    "sequelize": "^6.37.4"
+    "sequelize": "^6.37.4",
+    "sharp": "^0.34.5"
   },
   "devDependencies": {
     "nodemon": "^3.1.7"
