@@ -229,43 +229,101 @@ const confirmLabel = async () => {
 </script>
 <style lang="less" scoped>
 .mainLabel {
-  display: flex;
-  flex-wrap: wrap;
-  .lastBox {
-    display: flex;
-    justify-content: center;
-    /deep/ svg {
-      margin: 0 auto;
-    }
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
+  &::before {
+    content: "常用网址与灵感，都有自己的位置。";
+    grid-column: 1 / -1;
+    margin-bottom: 14px;
+    color: var(--theme-muted);
+    font-size: 13px;
+    line-height: 1.6;
   }
   .box {
-    // padding: 20px;
-    margin: 20px;
-    width: 200px;
-    cursor: pointer;
+    width: auto;
+    min-width: 0;
+    min-height: 100px;
+    margin: 0;
+    padding: 20px;
     display: flex;
+    position: relative;
     align-items: center;
-    /deep/ .el-card__body {
-      justify-content: space-between;
+    gap: 16px;
+    cursor: pointer;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 16px;
+    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+    transition: transform 180ms, border-color 180ms, box-shadow 180ms;
+    &:not(.lastBox)::before {
+      content: "";
+      display: grid;
+      place-items: center;
+      width: 42px;
+      height: 42px;
+      flex-shrink: 0;
+      border-radius: 12px;
+      color: var(--el-color-primary);
+      background: var(--el-color-primary-light-9);
+      font-size: 22px;
+      font-weight: 500;
+    }
+    &:not(.lastBox)::after {
+      content: "";
+      position: absolute;
+      left: 32px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 18px;
+      height: 18px;
+      pointer-events: none;
+      background: var(--ui-accent-text, var(--el-color-primary));
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 17 17 7M7 7h10v10' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+    }
+    :deep(.el-card__body) {
       display: flex;
       align-items: center;
+      justify-content: space-between;
+      gap: 12px;
       width: 100%;
+      min-width: 0;
+      padding: 0;
+      > span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+        font-weight: 600;
+      }
     }
     &:hover {
-      background-color: var(--el-fill-color-light);
+      transform: translateY(-3px);
+      border-color: var(--el-color-primary-light-5);
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
     }
-    &.hoverStyle {
-      // background-color: lightblue; // 悬停时的背景色
-      border-top: 2px dashed var(--el-color-primary);
-    }
-    .edit {
-      display: flex;
-      gap: 10px; 
-    }
+    &.hoverStyle { border: 2px dashed var(--el-color-primary); }
+    .edit { display: flex; gap: 10px; color: var(--theme-muted); }
   }
-  .autoBtn {
-    display: flex;
-    justify-content: space-between;
+  .lastBox {
+    justify-content: center;
+    background: transparent;
+    border-style: dashed;
+    box-shadow: none;
+    color: var(--theme-muted);
+    :deep(.el-card__body) { justify-content: center; }
+    :deep(svg) { width: 24px; height: 24px; }
+  }
+  .autoBtn { display: flex; gap: 12px; justify-content: space-between; }
+  :deep(.el-form-item) { margin-bottom: 16px; }
+}
+@media (max-width: 640px) {
+  .mainLabel {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 12px;
+    .box { padding: 16px; min-height: 90px; gap: 12px; }
+    .box:not(.lastBox)::before { width: 34px; height: 34px; font-size: 20px; border-radius: 10px; }
+    .box:not(.lastBox)::after { left: 24px; }
+    .autoBtn { flex-wrap: wrap; }
   }
 }
 </style>

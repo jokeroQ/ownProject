@@ -69,11 +69,38 @@ async function restoreDefaults() {
 }
 </script>
 <style scoped>
-.theme-launcher { position: fixed; right: 24px; bottom: 24px; z-index: 100; box-shadow: 0 4px 20px #0002; }
-.theme-settings { display: grid; gap: 12px; }
-.theme-settings select { padding: 8px; border-radius: 6px; color: var(--el-text-color-primary); background: var(--el-bg-color); border: 1px solid var(--el-border-color); }
-.theme-hint { font-size: 12px; color: var(--el-text-color-secondary); margin: 0; }
-.theme-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 8px; }
-.color-presets { display: flex; gap: 10px; }
-.color-presets button { width: 28px; height: 28px; border: 2px solid var(--el-border-color); border-radius: 50%; cursor: pointer; }
+.theme-launcher {
+  position: fixed;
+  right: 36px;
+  bottom: 36px;
+  z-index: 100;
+  height: 40px;
+  padding: 0 20px;
+  border-radius: 14px;
+  font-size: 12px;
+  font-weight: 550;
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
+}
+.theme-settings { display: grid; gap: 14px; }
+.theme-settings label { font-size: 13px; font-weight: 600; color: var(--el-text-color-primary); margin-top: 6px; }
+.theme-settings select {
+  width: 100%;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  color: var(--el-text-color-primary);
+  background: var(--el-fill-color-light);
+  border: 1px solid var(--el-border-color-lighter);
+  outline-color: var(--el-color-primary);
+}
+.theme-settings input[type=color] { width: 100%; height: 44px; padding: 5px; border: 1px solid var(--el-border-color-lighter); border-radius: 12px; background: var(--el-fill-color-light); cursor: pointer; }
+.theme-settings input[type=range] { width: 100%; accent-color: var(--el-color-primary); cursor: pointer; }
+.theme-settings input[type=file] { width: 100%; padding: 10px; border: 1px dashed var(--el-border-color); border-radius: 12px; background: var(--el-fill-color-lighter); font-size: 12px; color: var(--theme-muted); }
+.theme-settings input[type=file]::file-selector-button { padding: 8px 12px; margin-right: 12px; border: 0; border-radius: 8px; color: var(--el-color-primary); background: var(--el-color-primary-light-9); font-weight: 550; cursor: pointer; }
+.theme-hint { font-size: 12px; line-height: 1.7; color: var(--el-text-color-secondary); margin: 0; }
+.theme-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 14px; border: 1px solid var(--el-border-color-lighter); }
+.color-presets { display: flex; gap: 12px; }
+.color-presets button { width: 30px; height: 30px; border: 3px solid var(--el-bg-color); border-radius: 50%; outline: 1px solid var(--el-border-color-light); cursor: pointer; transition: transform 160ms; }
+.color-presets button:hover { transform: scale(1.15); }
+@media (max-width: 640px) { .theme-launcher { right: 24px; bottom: 24px; height: 36px; padding: 0 14px; } }
 </style>

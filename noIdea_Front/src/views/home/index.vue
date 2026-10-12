@@ -282,51 +282,199 @@ const logout = async () => {
 };
 </script>
 <style lang="less" scoped>
-.btnGroup {
-  display: flex;
-  justify-content: space-evenly;
-  margin: 20px 0;
-  svg {
-    cursor: pointer;
+.full-height {
+  width: 100%;
+  height: 100%;
+  padding: 20px;
+  gap: 20px;
+  box-sizing: border-box;
+  .el-aside {
+    width: 232px !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 22px;
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
+    &::before {
+      content: "noIdea.";
+      margin: 26px 26px 22px;
+      color: var(--ui-accent-text, var(--el-color-primary));
+      font-size: 28px;
+      font-weight: 750;
+      letter-spacing: -1.5px;
+    }
+  }
+  > .el-container {
+    min-width: 0;
+    border: 1px solid var(--el-border-color-lighter);
+    border-radius: 22px;
+    overflow: hidden;
+    background: var(--theme-surface);
+    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
+  }
+  .el-main {
+    padding: 32px;
+    &::before {
+      content: "我的收藏";
+      display: block;
+      margin-bottom: 8px;
+      font-size: 28px;
+      line-height: 1.35;
+      font-weight: 700;
+      letter-spacing: -0.8px;
+    }
+  }
+  .el-footer {
+    height: 64px;
+    padding: 0 32px;
+    background: transparent;
   }
 }
-.bottom {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
+.el-menu {
+  flex: 1;
+  min-height: 0;
+  padding: 0 12px;
+  overflow-y: auto;
+  border: none;
+  &::before {
+    content: "我的分类";
+    display: block;
+    padding: 0 14px 12px;
+    color: var(--theme-muted);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+  }
+  :deep(.el-menu-item-group__title) { display: none; }
+}
+.el-menu-item {
+  height: 46px;
+  margin-bottom: 6px;
+  padding: 0 14px !important;
+  justify-content: space-between;
+  border-radius: 12px;
+  font-size: 14px;
+  transition: background-color 160ms, color 160ms;
+  &.is-active {
+    background: var(--el-color-primary-light-9);
+    font-weight: 650;
+  }
+  &:hover .edit { display: flex; }
 }
 .edit {
   display: none;
+  gap: 8px;
+  color: var(--theme-muted);
+  svg { width: 15px; height: 15px; }
 }
-.el-menu {
-  border: none;
-}
-.el-menu-item {
+.btnGroup {
+  display: flex;
   justify-content: space-between;
-  &:hover .edit {
-    display: flex;
-    svg {
-      margin-right: 12px;
-    }
+  gap: 12px;
+  margin: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--el-border-color-lighter);
+  color: var(--theme-muted);
+  svg {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    transition: color 160ms, transform 160ms;
+    &:hover { color: var(--el-color-primary); transform: translateY(-2px); }
   }
 }
 .header {
+  height: 86px;
+  padding: 0 32px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 24px;
+  background: transparent;
+  border-bottom: 1px solid var(--el-border-color-lighter);
+  &::before {
+    content: "收藏工作台";
+    color: var(--theme-muted);
+    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 550;
+  }
+  > .el-input {
+    width: min(460px, 58%);
+    :deep(.el-input__wrapper) {
+      height: 42px;
+      padding: 0 14px;
+      background: var(--el-fill-color-light);
+      border-radius: 12px 0 0 12px;
+      box-shadow: none;
+    }
+    :deep(.el-input-group__append) {
+      padding: 0 18px;
+      border: none;
+      box-shadow: none;
+      border-radius: 0 12px 12px 0;
+      background: var(--el-fill-color-light);
+      color: var(--theme-muted);
+    }
+  }
+  > .el-button {
+    --el-button-bg-color: transparent;
+    --el-button-border-color: var(--el-border-color-lighter);
+    --el-button-text-color: var(--theme-muted);
+    --el-button-hover-bg-color: var(--el-fill-color-light);
+    --el-button-hover-border-color: var(--el-border-color);
+    --el-button-hover-text-color: var(--theme-text);
+    padding: 0 14px;
+    height: 36px;
+    font-size: 12px;
+    flex-shrink: 0;
+  }
 }
-.full-height {
+.bottom {
   height: 100%;
-  width: 100vw;
-  .el-aside {
-    border-right: 1px solid var(--el-border-color-light);
-    display: flex;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding-right: 124px;
+  color: var(--theme-muted);
+  font-size: 12px;
+  p { margin: 0; line-height: 1.6; }
+  .el-link { flex-shrink: 0; font-size: 12px; }
+}
+@media (max-width: 1000px) {
+  .full-height { padding: 14px; gap: 14px; }
+  .full-height .el-aside { width: 196px !important; }
+  .full-height .el-main { padding: 24px; }
+  .header { padding: 0 24px; &::before { display: none; } }
+  .header > .el-input { flex: 1; width: auto; }
+}
+@media (max-width: 640px) {
+  .full-height {
+    height: auto;
+    min-height: 100vh;
     flex-direction: column;
-    justify-content: space-between;
+    padding: 10px;
+    gap: 12px;
+    .el-aside {
+      width: 100% !important;
+      border-radius: 18px;
+      &::before { font-size: 23px; margin: 16px 20px 14px; }
+    }
+    > .el-container { border-radius: 18px; min-height: 60vh; }
+    .el-main { padding: 22px 18px; &::before { font-size: 24px; } }
+    .el-footer { padding: 0 18px; height: 76px; }
   }
-  .el-input {
-    width: 50%;
+  .el-menu {
+    flex: none;
+    overflow-x: auto;
+    &::before { display: none; }
+    :deep(.el-menu-item-group > ul) { display: flex; gap: 6px; width: max-content; }
   }
+  .el-menu-item { flex-shrink: 0; margin-bottom: 0; }
+  .btnGroup { margin: 12px 20px; padding-top: 12px; justify-content: flex-start; gap: 26px; }
+  .header { height: 72px; padding: 0 18px; gap: 12px; }
+  .bottom { padding-right: 100px; font-size: 11px; }
 }
 </style>

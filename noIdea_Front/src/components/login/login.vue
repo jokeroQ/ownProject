@@ -71,22 +71,55 @@ const goRegister = () => {
 </script>
 
 <style scoped lang="less">
+h1 {
+  margin: 0;
+  color: var(--theme-muted);
+  font-size: 15px;
+  font-weight: 450;
+  letter-spacing: 1px;
+}
 .block {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-  background-color: rgba(0, 0, 0, 0.1);
-  width: 50%;
-  margin: 0 auto;
-  padding: 40px 0;
-  border-radius: 20px;
+  width: min(420px, calc(100vw - 40px));
+  box-sizing: border-box;
+  margin: 0;
+  padding: 32px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 24px;
+  color: var(--theme-text);
+  background: var(--el-bg-color);
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
+  &::before {
+    content: "登录你的收藏空间";
+    display: block;
+    margin-bottom: 28px;
+    font-size: 22px;
+    font-weight: 650;
+    letter-spacing: -0.5px;
+  }
+  .el-form { width: 100%; }
+  :deep(.el-form-item) { flex-direction: column; align-items: stretch; margin-bottom: 20px; }
+  :deep(.el-form-item__label-wrap) { margin-left: 0 !important; }
+  :deep(.el-form-item__label) {
+    justify-content: flex-start;
+    width: auto !important;
+    height: auto;
+    margin-bottom: 8px;
+    padding: 0;
+    line-height: 20px;
+    font-size: 13px;
+    font-weight: 550;
+    color: var(--theme-muted);
+  }
+  :deep(.el-form-item__content) { margin-left: 0 !important; }
+  :deep(.el-input__wrapper) { height: 46px; padding: 0 14px; border-radius: 12px; }
   .btnGroup {
-    text-align: right;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 28px;
+    .el-button { width: 100%; margin: 0; height: 44px; border-radius: 12px; font-weight: 550; }
   }
 }
-.input-fixed-width {
-  width: 300px; /* 设置固定宽度 */
-}
+.input-fixed-width { width: 100%; }
+@media (max-width: 480px) { .block { padding: 26px; } }
 </style>
