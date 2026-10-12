@@ -94,10 +94,10 @@ import MainLabel from "@/components/label/MainLabel.vue";
 import { menuList, Menu, getMotto } from "@views/home/home";
 import { deleteMenuItem } from "@/api/menuApi/menu";
 import { Search } from "@element-plus/icons-vue";
-import { reactive, ref } from "vue";
+import { reactive, ref, watch } from "vue";
 import { ElMessage, ElMessageBox } from "element-plus";
 import { postRequest, getRequest, putRequest } from "../../utils/httpService";
-import { useRouter } from "vue-router";
+import { useRouter, useRoute } from "vue-router";
 import { clearLogin } from '@/utils/auth';
 import "element-plus/es/components/message/style/css";
 import "element-plus/es/components/message-box/style/css";  
@@ -105,7 +105,8 @@ import "element-plus/es/components/message-box/style/css";
 //   menuList: menuList,
 // });
 const searchValue = ref<string>("");
-const activeTab = ref<string>("");
+const route = useRoute();
+const activeTab = ref<string>(typeof route.query.category === 'string' ? route.query.category : '');
 const dialogVisible = ref(false);
 const labelName = ref("");
 const router = useRouter();
@@ -116,6 +117,23 @@ const state = reactive<any>({
 const editMode = ref<boolean>(false);
 const mode = ref<string>("add");
 const index = ref<string>("");
+const syncCategoryUrl = (category: string) => {
+  if (route.name !== 'home' || route.query.category === (category || undefined)) return;
+  void router.replace({
+    name: 'home',
+    query: { ...route.query, category: category || undefined },
+    hash: route.hash,
+  });
+};
+const restoreCategory = () => {
+  const category = typeof route.query.category === 'string' ? route.query.category : '';
+  activeTab.value = state.menus.some((menu: any) => String(menu.id) === category)
+    ? category : state.menus.length ? String(state.menus[0].id) : '';
+  syncCategoryUrl(activeTab.value);
+};
+watch(() => route.query.category, () => {
+  if (route.name === 'home' && state.menus.length) restoreCategory();
+});
 onMounted(() => {
   getMenu();
 });
@@ -128,9 +146,7 @@ const getMenu = async () => {
   getRequest("/menu/getMenus")
     .then((res: any) => {
       state.menus = res.data;
-      if (!state.menus.some((i: any) => String(i.id) === activeTab.value)) {
-        activeTab.value = state.menus.length ? String(state.menus[0].id) : '';
-      }
+      restoreCategory();
     })
     .catch((error: any) => {
       ElMessage({
@@ -141,8 +157,8 @@ const getMenu = async () => {
 };
 //切换菜单项
 const changeTab = (index: string) => {
-  //   console.log(index);
-  activeTab.value = index;
+  // The route is the source of truth; update the visible category after its URL is saved.
+  syncCategoryUrl(index);
 };
 //新增菜单
 const createMenu = () => {
