@@ -2,11 +2,7 @@
 <template>
   <div class="p-4 w-full h-full m-auto">
     <el-button type="primary" :icon="Back" circle @click="goBack" />
-    <el-form
-      label-width="auto"
-      :model="formLabelAlign"
-      style="max-width: 600px"
-    >
+    <el-form label-width="auto" :model="formLabelAlign" style="max-width: 600px">
       <el-form-item label="用户名">
         <el-input v-model="formLabelAlign.username" />
       </el-form-item>
@@ -24,15 +20,17 @@
 </template>
 
 <script lang="ts" setup>
-import { reactive } from "vue";
-import { Back } from "@element-plus/icons-vue";
-import { useRouter } from "vue-router";
+defineOptions({ name: 'RegisterPage' });
+import { reactive } from 'vue';
+import { Back } from '@element-plus/icons-vue';
+import { useRouter } from 'vue-router';
 import { postRequest } from '../../utils/httpService';
+import { getErrorMessage } from '@/utils/errors';
 const router = useRouter();
 const formLabelAlign = reactive({
-  username: "",
-  password: "",
-  email: "",
+  username: '',
+  password: '',
+  email: '',
 });
 interface User {
   id: number;
@@ -40,19 +38,19 @@ interface User {
   email: string;
 }
 //提交注册
-const onSubmit = async() => {
+const onSubmit = async () => {
   try {
     await postRequest<User>('/users/register', formLabelAlign);
     ElMessage({
-      message: "注册成功",
-      type: "success",
+      message: '注册成功',
+      type: 'success',
     });
-    router.push("/");
-  } catch (error: any) {
-    console.error("注册失败:", error);
+    router.push('/');
+  } catch (error) {
+    console.error('注册失败:', error);
     ElMessage({
-      message: error.response?.data?.message ?? '注册失败',
-      type: "error",
+      message: getErrorMessage(error, '注册失败'),
+      type: 'error',
     });
   }
 };
@@ -71,9 +69,17 @@ const goBack = () => {
   display: grid;
   place-content: center;
   padding: 40px 20px;
-  background: radial-gradient(ellipse at 20% 15%, var(--el-color-primary-light-9), transparent 52%), var(--theme-page);
+  background:
+    radial-gradient(ellipse at 20% 15%, var(--el-color-primary-light-9), transparent 52%),
+    var(--theme-page);
 }
-.p-4 > .el-button { position: absolute; top: 28px; left: 28px; width: 40px; height: 40px; }
+.p-4 > .el-button {
+  position: absolute;
+  top: 28px;
+  left: 28px;
+  width: 40px;
+  height: 40px;
+}
 .el-form {
   box-sizing: border-box;
   width: min(420px, calc(100vw - 40px));
@@ -85,7 +91,7 @@ const goBack = () => {
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
 }
 .el-form::before {
-  content: "创建你的收藏空间";
+  content: '创建你的收藏空间';
   display: block;
   margin-bottom: 28px;
   color: var(--theme-text);
@@ -93,11 +99,39 @@ const goBack = () => {
   font-weight: 650;
   letter-spacing: -0.5px;
 }
-:deep(.el-form-item) { flex-direction: column; align-items: stretch; margin-bottom: 20px; }
-:deep(.el-form-item__label-wrap) { margin-left: 0 !important; }
-:deep(.el-form-item__label) { width: auto !important; justify-content: flex-start; height: auto; margin-bottom: 8px; padding: 0; line-height: 20px; color: var(--theme-muted); font-size: 13px; }
-:deep(.el-form-item__content) { margin-left: 0 !important; }
-:deep(.el-input__wrapper) { height: 46px; padding: 0 14px; border-radius: 12px; }
-.el-form-item:last-child { margin-bottom: 0; margin-top: 28px; }
-.el-form-item:last-child .el-button { width: 100%; height: 44px; border-radius: 12px; }
+:deep(.el-form-item) {
+  flex-direction: column;
+  align-items: stretch;
+  margin-bottom: 20px;
+}
+:deep(.el-form-item__label-wrap) {
+  margin-left: 0 !important;
+}
+:deep(.el-form-item__label) {
+  width: auto !important;
+  justify-content: flex-start;
+  height: auto;
+  margin-bottom: 8px;
+  padding: 0;
+  line-height: 20px;
+  color: var(--theme-muted);
+  font-size: 13px;
+}
+:deep(.el-form-item__content) {
+  margin-left: 0 !important;
+}
+:deep(.el-input__wrapper) {
+  height: 46px;
+  padding: 0 14px;
+  border-radius: 12px;
+}
+.el-form-item:last-child {
+  margin-bottom: 0;
+  margin-top: 28px;
+}
+.el-form-item:last-child .el-button {
+  width: 100%;
+  height: 44px;
+  border-radius: 12px;
+}
 </style>

@@ -1,4 +1,5 @@
-:root, html[data-theme='light'] {
+:root,
+html[data-theme='light'] {
   --theme-page: #f3f6fb;
   --theme-surface: rgba(255, 255, 255, 0.86);
   --theme-muted: #64748b;
@@ -50,30 +51,143 @@ html[data-theme='dark'] {
   --background-aside: var(--theme-surface);
   --background-main: var(--theme-page);
 }
-html[data-theme='light'] { --ui-accent-text: var(--el-color-primary); }
-body { display: block; color: var(--theme-text); background: var(--theme-page); }
-body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; letter-spacing: 0.1px; }
-#app { width: 100%; max-width: none; min-height: 100vh; isolation: isolate; }
-.theme-shell { height: 100%; min-height: 100vh; }
-.theme-backdrop { position: fixed; inset: 0; z-index: -1; pointer-events: none; background-color: var(--theme-page); background-image: linear-gradient(rgba(var(--theme-mask-rgb), var(--theme-overlay)), rgba(var(--theme-mask-rgb), var(--theme-overlay))), var(--theme-background-image); background-size: cover; background-position: center; }
-.el-aside, .el-header, .el-footer { background: var(--theme-surface); color: var(--theme-text); }
-.el-main { background: transparent; color: var(--theme-text); }
-.el-menu { --el-menu-bg-color: transparent; --el-menu-text-color: var(--theme-text); --el-menu-active-color: var(--el-color-primary); --el-menu-hover-bg-color: var(--el-fill-color-light); }
-html[data-theme='dark'] .el-menu { --el-menu-active-color: var(--ui-accent-text); }
-.el-card { background: var(--theme-surface); color: var(--theme-text); }
-.el-dialog, .el-message-box { color: var(--el-text-color-primary); }
-.el-button { border-radius: 10px; transition: background-color 160ms, border-color 160ms, box-shadow 160ms; }
-html .el-dialog { padding: 28px; border: 1px solid var(--el-border-color-lighter); border-radius: 22px; box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16); }
-html .el-dialog__header { padding: 0 30px 20px 0; }
-html .el-dialog__title { font-size: 19px; font-weight: 650; letter-spacing: -0.4px; }
-html .el-dialog__body { padding: 0; max-height: 65vh; overflow-y: auto; }
-html .el-dialog__footer { padding: 24px 0 0; }
-html .el-message-box { padding: 24px; border-radius: 20px; box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16); }
-html .el-message-box__title { font-weight: 650; font-size: 18px; }
-html .el-message-box__content { padding: 20px 0; line-height: 1.7; }
-.el-message { border-radius: 12px; box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08); }
-.el-input__wrapper { border-radius: 10px; }
-#global-watermark { opacity: 0.25; }
-@media (prefers-reduced-motion: reduce) { *, *::before, *::after { transition-duration: 0.01ms !important; } }
-.theme-shell > .p-4, .theme-shell > .chat { min-height: 100vh; color: var(--theme-text); }
-@media (max-width: 600px) { .el-dialog { max-width: calc(100vw - 24px); } }
+html[data-theme='light'] {
+  --ui-accent-text: var(--el-color-primary);
+}
+body {
+  display: block;
+  color: var(--theme-text);
+  background: var(--theme-page);
+}
+body {
+  font-family:
+    Inter,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'PingFang SC',
+    'Microsoft YaHei',
+    sans-serif;
+  letter-spacing: 0.1px;
+}
+#app {
+  width: 100%;
+  max-width: none;
+  min-height: 100vh;
+  isolation: isolate;
+}
+.theme-shell {
+  height: 100%;
+  min-height: 100vh;
+}
+.theme-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--theme-page);
+  background-image:
+    linear-gradient(
+      rgba(var(--theme-mask-rgb), var(--theme-overlay)),
+      rgba(var(--theme-mask-rgb), var(--theme-overlay))
+    ),
+    var(--theme-background-image);
+  background-size: cover;
+  background-position: center;
+}
+.el-aside,
+.el-header,
+.el-footer {
+  background: var(--theme-surface);
+  color: var(--theme-text);
+}
+.el-main {
+  background: transparent;
+  color: var(--theme-text);
+}
+.el-menu {
+  --el-menu-bg-color: transparent;
+  --el-menu-text-color: var(--theme-text);
+  --el-menu-active-color: var(--el-color-primary);
+  --el-menu-hover-bg-color: var(--el-fill-color-light);
+}
+html[data-theme='dark'] .el-menu {
+  --el-menu-active-color: var(--ui-accent-text);
+}
+.el-card {
+  background: var(--theme-surface);
+  color: var(--theme-text);
+}
+.el-dialog,
+.el-message-box {
+  color: var(--el-text-color-primary);
+}
+.el-button {
+  border-radius: 10px;
+  transition:
+    background-color 160ms,
+    border-color 160ms,
+    box-shadow 160ms;
+}
+html .el-dialog {
+  padding: 28px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 22px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+}
+html .el-dialog__header {
+  padding: 0 30px 20px 0;
+}
+html .el-dialog__title {
+  font-size: 19px;
+  font-weight: 650;
+  letter-spacing: -0.4px;
+}
+html .el-dialog__body {
+  padding: 0;
+  max-height: 65vh;
+  overflow-y: auto;
+}
+html .el-dialog__footer {
+  padding: 24px 0 0;
+}
+html .el-message-box {
+  padding: 24px;
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+}
+html .el-message-box__title {
+  font-weight: 650;
+  font-size: 18px;
+}
+html .el-message-box__content {
+  padding: 20px 0;
+  line-height: 1.7;
+}
+.el-message {
+  border-radius: 12px;
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
+}
+.el-input__wrapper {
+  border-radius: 10px;
+}
+#global-watermark {
+  opacity: 0.25;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+  }
+}
+.theme-shell > .p-4,
+.theme-shell > .chat {
+  min-height: 100vh;
+  color: var(--theme-text);
+}
+@media (max-width: 600px) {
+  .el-dialog {
+    max-width: calc(100vw - 24px);
+  }
+}

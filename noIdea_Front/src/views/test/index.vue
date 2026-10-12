@@ -1,6 +1,11 @@
 <template>
   <div>
-    <select name="theme" :value="themeState.settings.mode" :disabled="themeState.loading" @change="changeTheme">
+    <select
+      name="theme"
+      :value="themeState.settings.mode"
+      :disabled="themeState.loading"
+      @change="changeTheme"
+    >
       <option value="light">浅色</option>
       <option value="dark">深色</option>
     </select>
@@ -13,19 +18,20 @@
     </div>
   </div>
 </template>
-  
+
 <script setup lang="ts">
-import { ref } from "vue";
+defineOptions({ name: 'ThemePreviewPage' });
+import { ref } from 'vue';
 import { ElMessage } from 'element-plus';
 import { themeState, saveTheme } from '@/utils/theme';
 // import { computed } from 'vue';
 
 const colorList = ref([
-  "--font-primary",
-  "--font-highlight",
-  "--background-header",
-  "--background-aside",
-  "--background-main",
+  '--font-primary',
+  '--font-highlight',
+  '--background-header',
+  '--background-aside',
+  '--background-main',
 ]);
 
 // 获取主题
@@ -34,8 +40,12 @@ const colorList = ref([
 // 切换主题的方法
 const changeTheme = async (e: Event) => {
   const target = e.target as HTMLSelectElement;
-  try { await saveTheme({ ...themeState.settings, mode: target.value as 'light' | 'dark' }); }
-  catch { target.value = themeState.settings.mode; ElMessage.error('主题保存失败'); }
+  try {
+    await saveTheme({ ...themeState.settings, mode: target.value as 'light' | 'dark' });
+  } catch {
+    target.value = themeState.settings.mode;
+    ElMessage.error('主题保存失败');
+  }
 };
 // const handleChange = (e: Event) => {
 //   window.document.documentElement.setAttribute(

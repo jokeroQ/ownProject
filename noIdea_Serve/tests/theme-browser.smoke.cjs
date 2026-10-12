@@ -55,7 +55,7 @@ async function main() {
       await page.locator('input').nth(0).fill(username);
       await page.locator('input[type=password]').fill('browser-password');
       await page.getByRole('button', { name: '登录', exact: true }).click();
-      await page.waitForURL('**/home');
+      await page.waitForURL(target => target.pathname === '/home');
       await page.getByRole('button', { name: '主题设置', exact: true }).waitFor();
     };
     await login('browser-alice');
@@ -87,6 +87,13 @@ async function main() {
     if (process.env.THEME_SCREENSHOT) await page.screenshot({ path: process.env.THEME_SCREENSHOT, fullPage: true });
     await page.goto(url + '/chat');
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark' && document.documentElement.dataset.hasBackground === 'true');
+    assert.equal(await page.getByRole('button', { name: '主题设置', exact: true }).count(), 0);
+    await page.goto(url + '/signPad');
+    await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
+    assert.equal(await page.getByRole('button', { name: '主题设置', exact: true }).count(), 0);
+    await page.goto(url + '/register');
+    await page.getByRole('button', { name: '注册', exact: true }).waitFor();
+    assert.equal(await page.getByRole('button', { name: '主题设置', exact: true }).count(), 0);
     await page.goto(url + '/home');
     await page.getByRole('button', { name: '退出登录', exact: true }).click();
     await page.getByRole('button', { name: '退出', exact: true }).click();

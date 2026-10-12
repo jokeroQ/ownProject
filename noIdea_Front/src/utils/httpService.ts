@@ -1,16 +1,12 @@
 import { AxiosResponse } from 'axios';
 import apiClient from '@/api/apiClient';
+import type { ApiResponse } from '@/utils/types';
 
 // 定义接口请求的通用响应类型
-interface ApiResponse<T> {
-  data: T;
-  message?: string;
-  status?: number;
-}
 
 // 创建一个 Axios 实例
 // 封装 PUT 请求
-export const putRequest = async <T>(url: string, data: any): Promise<ApiResponse<T>> => {
+export const putRequest = async <T>(url: string, data: unknown): Promise<ApiResponse<T>> => {
   try {
     const response: AxiosResponse<ApiResponse<T>> = await apiClient.put(url, data);
     return response.data;
@@ -21,7 +17,10 @@ export const putRequest = async <T>(url: string, data: any): Promise<ApiResponse
   }
 };
 // 封装 POST 请求
-export const postRequest = async <T = ApiResponse<unknown>>(url: string, data: any): Promise<T> => {
+export const postRequest = async <T = ApiResponse<unknown>>(
+  url: string,
+  data: unknown,
+): Promise<T> => {
   try {
     const response: AxiosResponse<T> = await apiClient.post(url, data);
     return response.data;
@@ -33,7 +32,7 @@ export const postRequest = async <T = ApiResponse<unknown>>(url: string, data: a
 };
 
 // 封装 GET 请求
-export const getRequest = async <T>(url: string, params: any = {}): Promise<ApiResponse<T>> => {
+export const getRequest = async <T>(url: string, params: unknown = {}): Promise<ApiResponse<T>> => {
   try {
     const response: AxiosResponse<ApiResponse<T>> = await apiClient.get(url, { params });
     return response.data;
