@@ -16,7 +16,7 @@
     >
       <span>{{ i.title }}</span>
       <!--  -->
-      <div v-if="currentIndex == index && editMode" class="edit">
+      <div v-show="currentIndex == index && editMode" class="edit">
         <i-ep-edit @click.stop="editDetail(i)"></i-ep-edit>
         <i-ep-delete @click.stop="deleteItem(i.id)"></i-ep-delete>
       </div>
@@ -260,7 +260,7 @@ const confirmLabel = async () => {
     }
     .edit {
       display: flex;
-      flex-direction: column;
+      gap: 10px; 
     }
   }
   .autoBtn {
