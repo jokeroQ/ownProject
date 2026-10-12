@@ -185,7 +185,7 @@ const addSubMenus = () => {
     menuId: props.activeTab,
   };
   addsubMenuItem(params).then((res: any) => {
-    if (res.status == 200) {
+    if (res.status == 201) {
       ElMessage({
         message: "添加书签成功",
         type: "success",
