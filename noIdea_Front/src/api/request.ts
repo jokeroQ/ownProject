@@ -8,8 +8,8 @@ import { ApiResponse } from '../utils/types';
 export const apiRequest = async <T>(
   method: Method,
   url: string,
-  data: any = {},
-  params: any = {}
+  data: unknown = {},
+  params: unknown = {},
 ): Promise<ApiResponse<T>> => {
   try {
     const response: AxiosResponse<ApiResponse<T>> = await apiClient({
@@ -27,18 +27,21 @@ export const apiRequest = async <T>(
 
 // 封装具体请求函数
 
-export const putRequest = async <T>(url: string, data: any): Promise<ApiResponse<T>> => {
+export const putRequest = async <T>(url: string, data: unknown): Promise<ApiResponse<T>> => {
   return apiRequest<T>('put', url, data);
 };
 
-export const postRequest = async <T>(url: string, data: any): Promise<ApiResponse<T>> => {
+export const postRequest = async <T>(url: string, data: unknown): Promise<ApiResponse<T>> => {
   return apiRequest<T>('post', url, data);
 };
 
-export const getRequest = async <T>(url: string, params: any = {}): Promise<ApiResponse<T>> => {
+export const getRequest = async <T>(url: string, params: unknown = {}): Promise<ApiResponse<T>> => {
   return apiRequest<T>('get', url, {}, params);
 };
 
-export const deleteRequest = async <T>(url: string, params: any = {}): Promise<ApiResponse<T>> => {
+export const deleteRequest = async <T>(
+  url: string,
+  params: unknown = {},
+): Promise<ApiResponse<T>> => {
   return apiRequest<T>('delete', url, {}, params);
 };

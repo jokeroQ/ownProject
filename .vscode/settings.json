@@ -1,0 +1,13 @@
+{
+  "editor.formatOnSave": true,
+  "prettier.ignorePath": ".prettierignore",
+  "typescript.tsdk": "noIdea_Front/node_modules/typescript/lib",
+  "typescript.enablePromptUseWorkspaceTsdk": true,
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": "explicit"
+  },
+  "eslint.workingDirectories": [{ "mode": "auto" }],
+  "eslint.validate": ["javascript", "typescript", "vue"],
+  "[vue]": { "editor.defaultFormatter": "esbenp.prettier-vscode" }
+}

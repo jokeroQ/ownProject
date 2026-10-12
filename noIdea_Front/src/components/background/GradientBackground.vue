@@ -5,13 +5,13 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, reactive, onMounted, onUnmounted } from "vue";
+import { defineComponent, reactive, onMounted, onUnmounted } from 'vue';
 export default defineComponent({
-  name: "GradientBackground",
+  name: 'GradientBackground',
   setup() {
     const state = reactive({
-      color1: "",
-      color2: "",
+      color1: '',
+      color2: '',
     });
 
     const updateGradient = () => {
@@ -55,15 +55,22 @@ export default defineComponent({
   width: 100%;
   min-height: 100vh;
   height: auto;
-  background: radial-gradient(ellipse at 18% 12%, var(--el-color-primary-light-9), transparent 50%), radial-gradient(ellipse at 82% 86%, var(--el-fill-color), transparent 50%), var(--theme-page) !important;
+  background:
+    radial-gradient(ellipse at 18% 12%, var(--el-color-primary-light-9), transparent 50%),
+    radial-gradient(ellipse at 82% 86%, var(--el-fill-color), transparent 50%), var(--theme-page) !important;
 }
 .gradient-background::before {
-  content: "noIdea.";
+  content: 'noIdea.';
   color: var(--el-color-primary);
   font-size: 42px;
   font-weight: 750;
   letter-spacing: -2px;
   line-height: 1;
 }
-@media (max-height: 600px) { .gradient-background { gap: 16px; padding: 24px 20px; } }
+@media (max-height: 600px) {
+  .gradient-background {
+    gap: 16px;
+    padding: 24px 20px;
+  }
+}
 </style>

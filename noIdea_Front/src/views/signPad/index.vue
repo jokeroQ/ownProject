@@ -40,10 +40,11 @@
 </template>
 
 <script setup lang="ts">
-import { Back } from "@element-plus/icons-vue";
-import { useRouter, useRoute } from "vue-router";
-import { onMounted, ref } from "vue";
-import SignaturePad from "signature_pad";
+defineOptions({ name: 'SignaturePage' });
+import { Back } from '@element-plus/icons-vue';
+import { useRouter, useRoute } from 'vue-router';
+import { onMounted, ref } from 'vue';
+import SignaturePad from 'signature_pad';
 const router = useRouter();
 const route = useRoute();
 const signatureCanvas = ref();
@@ -57,7 +58,8 @@ onMounted(() => {
 const goBack = () => {
   router.push({
     name: 'home',
-    query: typeof route.query.fromCategory === 'string' ? { category: route.query.fromCategory } : {},
+    query:
+      typeof route.query.fromCategory === 'string' ? { category: route.query.fromCategory } : {},
   });
 };
 //清除签名
@@ -69,7 +71,7 @@ const goSave = () => {
   if (!signaturePad.value.isEmpty()) {
     signatureImg.value = signaturePad.value.toDataURL();
   } else {
-    alert("请先签名");
+    alert('请先签名');
   }
 };
 const previewSignature = () => {

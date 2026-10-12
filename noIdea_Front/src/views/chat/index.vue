@@ -46,46 +46,46 @@
     </div>
   </div>
 </template>
-  <script lang='ts' setup>
+<script lang="ts" setup>
+defineOptions({ name: 'ChatPage' });
 export interface Type {
   name: string;
   time: number;
   inputer: boolean;
   msg: string | null;
 }
-import { stat } from "fs";
-import { ref, reactive } from "vue";
+import { ref, reactive } from 'vue';
 const state = reactive({
   mesList: [
     {
-      name: "小王",
-      content: "最近怎么样",
-      id: "1",
-      img: "12",
+      name: '小王',
+      content: '最近怎么样',
+      id: '1',
+      img: '12',
     },
     {
-      name: "小刘",
-      content: "hi",
-      id: "2",
-      img: "12",
+      name: '小刘',
+      content: 'hi',
+      id: '2',
+      img: '12',
     },
   ],
   msgList: <Array<Type>>[
     {
-      name: "小王",
+      name: '小王',
       time: 12,
       inputer: false,
-      msg: "最近咋样",
+      msg: '最近咋样',
     },
     {
-      name: "小刘",
+      name: '小刘',
       time: 2,
       inputer: false,
-      msg: "你还好吗",
+      msg: '你还好吗',
     },
   ],
 });
-const activeId = ref<string>("1");
+const activeId = ref<string>('1');
 const currentIput = ref<string | null>(null);
 const scrollRef = ref<HTMLDivElement | null>(null);
 //发送信息
@@ -94,17 +94,17 @@ const sendMsg = () => {
     const time = new Date();
     state.msgList.push({
       time: time.getTime(),
-      name: "元",
+      name: '元',
       inputer: true,
       msg: currentIput.value,
     });
-    currentIput.value = "";
+    currentIput.value = '';
     const container = scrollRef.value;
     if (container) {
       setTimeout(() => {
         container.scrollTo({
           top: container.scrollHeight,
-          behavior: "smooth",
+          behavior: 'smooth',
         });
       });
     }
@@ -116,7 +116,7 @@ const switchMsg = (id: string) => {
   state.msgList = [];
 };
 </script>
-  <style lang="less" scoped>
+<style lang="less" scoped>
 .chat {
   display: flex;
   height: 100vh;
@@ -193,7 +193,7 @@ const switchMsg = (id: string) => {
             margin-left: 8px;
           }
           &.lft::after {
-            content: "";
+            content: '';
             position: absolute;
             left: -16px;
             top: 8px;
@@ -203,7 +203,7 @@ const switchMsg = (id: string) => {
             border-right-color: var(--el-color-primary-light-7);
           }
           &.rgt::after {
-            content: "";
+            content: '';
             position: absolute;
             right: -16px;
             top: 8px;

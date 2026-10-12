@@ -61,9 +61,7 @@
       <el-footer>
         <div class="bottom">
           <p>{{ state.moto }}</p>
-          <el-link @click="exitMode" :underline="false" v-if="editMode"
-            >退出编辑模式</el-link
-          >
+          <el-link @click="exitMode" :underline="false" v-if="editMode">退出编辑模式</el-link>
         </div>
       </el-footer>
     </el-container>
@@ -86,37 +84,42 @@
         </div>
       </template>
     </el-dialog>
+    <ThemeSettings />
   </el-container>
 </template>
 
 <script setup lang="ts">
-import MainLabel from "@/components/label/MainLabel.vue";
-import { menuList, Menu, getMotto } from "@views/home/home";
-import { deleteMenuItem } from "@/api/menuApi/menu";
-import { Search } from "@element-plus/icons-vue";
-import { reactive, ref, watch } from "vue";
-import { ElMessage, ElMessageBox } from "element-plus";
-import { postRequest, getRequest, putRequest } from "../../utils/httpService";
-import { useRouter, useRoute } from "vue-router";
+defineOptions({ name: 'HomePage' });
+import MainLabel from '@/components/label/MainLabel.vue';
+import ThemeSettings from '@/components/theme/ThemeSettings.vue';
+import { getMotto } from '@views/home/home';
+import { deleteMenuItem } from '@/api/menuApi/menu';
+import { Search } from '@element-plus/icons-vue';
+import { reactive, ref, watch } from 'vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { postRequest, getRequest, putRequest } from '../../utils/httpService';
+import { useRouter, useRoute } from 'vue-router';
 import { clearLogin } from '@/utils/auth';
-import "element-plus/es/components/message/style/css";
-import "element-plus/es/components/message-box/style/css";  
+import type { Menu } from '@/utils/types';
+import { getErrorMessage } from '@/utils/errors';
+import 'element-plus/es/components/message/style/css';
+import 'element-plus/es/components/message-box/style/css';
 // const state = reactive({
 //   menuList: menuList,
 // });
-const searchValue = ref<string>("");
+const searchValue = ref<string>('');
 const route = useRoute();
 const activeTab = ref<string>(typeof route.query.category === 'string' ? route.query.category : '');
 const dialogVisible = ref(false);
-const labelName = ref("");
+const labelName = ref('');
 const router = useRouter();
-const state = reactive<any>({
+const state = reactive<{ moto: string; menus: Menu[] }>({
   moto: getMotto(),
   menus: [],
 });
 const editMode = ref<boolean>(false);
-const mode = ref<string>("add");
-const index = ref<string>("");
+const mode = ref<string>('add');
+const index = ref<string>('');
 const syncCategoryUrl = (category: string) => {
   if (route.name !== 'home' || route.query.category === (category || undefined)) return;
   void router.replace({
@@ -127,31 +130,37 @@ const syncCategoryUrl = (category: string) => {
 };
 const restoreCategory = () => {
   const category = typeof route.query.category === 'string' ? route.query.category : '';
-  activeTab.value = state.menus.some((menu: any) => String(menu.id) === category)
-    ? category : state.menus.length ? String(state.menus[0].id) : '';
+  activeTab.value = state.menus.some((menu) => String(menu.id) === category)
+    ? category
+    : state.menus.length
+      ? String(state.menus[0].id)
+      : '';
   syncCategoryUrl(activeTab.value);
 };
-watch(() => route.query.category, () => {
-  if (route.name === 'home' && state.menus.length) restoreCategory();
-});
+watch(
+  () => route.query.category,
+  () => {
+    if (route.name === 'home' && state.menus.length) restoreCategory();
+  },
+);
 onMounted(() => {
   getMenu();
 });
 const activeLists = computed(() => {
-  const data = state.menus.find((i: any) => String(i.id) === activeTab.value);
+  const data = state.menus.find((i) => String(i.id) === activeTab.value);
   return data ? data.menuLists : [];
 });
 //获取最新的菜单
 const getMenu = async () => {
-  getRequest("/menu/getMenus")
-    .then((res: any) => {
+  getRequest<Menu[]>('/menu/getMenus')
+    .then((res) => {
       state.menus = res.data;
       restoreCategory();
     })
-    .catch((error: any) => {
+    .catch((error: unknown) => {
       ElMessage({
-        message: error.message,
-        type: "error",
+        message: getErrorMessage(error, '获取菜单失败'),
+        type: 'error',
       });
     });
 };
@@ -163,11 +172,11 @@ const changeTab = (index: string) => {
 //新增菜单
 const createMenu = () => {
   dialogVisible.value = true;
-  mode.value = "add";
-  labelName.value = "";
-  index.value = "";
+  mode.value = 'add';
+  labelName.value = '';
+  index.value = '';
 };
-const handleClose = (done: () => void) => {
+const handleClose = () => {
   dialogVisible.value = false;
 };
 
@@ -175,19 +184,19 @@ const handleClose = (done: () => void) => {
 const goEdit = () => {
   editMode.value = true;
   ElMessage({
-    message: "已经开启编辑功能，点击右下角可退出",
+    message: '已经开启编辑功能，点击右下角可退出',
   });
 };
 //关闭编辑模式
 const exitMode = () => {
   editMode.value = false;
   ElMessage({
-    message: "已退出编辑模式",
+    message: '已退出编辑模式',
   });
 };
 //编辑左侧菜单标签
-const editDetail = (i: any) => {
-  mode.value = "update";
+const editDetail = (i: Menu) => {
+  mode.value = 'update';
   dialogVisible.value = true;
   labelName.value = i.title;
   index.value = String(i.id);
@@ -203,14 +212,13 @@ const addType = async () => {
       });
       ElMessage({
         message: res.message,
-        type: "success",
+        type: 'success',
       });
       getMenu();
-    } catch (error: any) {
-      const { data } = error.response;
+    } catch (error) {
       ElMessage({
-        message: data.message,
-        type: "error",
+        message: getErrorMessage(error, '添加分类失败'),
+        type: 'error',
       });
     }
   }
@@ -226,14 +234,13 @@ const editMenus = async () => {
     const res = await putRequest(`/menu/updateMenu/${index.value}`, params);
     ElMessage({
       message: res.message,
-      type: "success",
+      type: 'success',
     });
     getMenu();
-  } catch (error: any) {
-    const { data } = error.response;
+  } catch (error) {
     ElMessage({
-      message: data.message,
-      type: "error",
+      message: getErrorMessage(error, '更新分类失败'),
+      type: 'error',
     });
   }
 };
@@ -244,41 +251,34 @@ const deleteItem = async (index: string) => {
     if (res.status == 200) {
       ElMessage({
         message: res.message,
-        type: "success",
+        type: 'success',
       });
     } else {
       ElMessage({
         message: res.message,
-        type: "error",
+        type: 'error',
       });
     }
     getMenu();
-  } catch (error: any) {
+  } catch (error) {
     ElMessage({
-      message: error.message,
-      type: "error",
+      message: getErrorMessage(error, '删除分类失败'),
+      type: 'error',
     });
   }
 };
 //跳转搜索
 const goSearch = () => {
-  window.open(
-    `https://www.baidu.com/s?ie=utf-8&word=${searchValue.value}`,
-    "_blank"
-  );
+  window.open(`https://www.baidu.com/s?ie=utf-8&word=${searchValue.value}`, '_blank');
 };
 //退出登录
 const logout = async () => {
   try {
-    await ElMessageBox.confirm(
-      "确定要退出登录吗？",
-      "退出登录",
-      {
-        confirmButtonText: "退出",
-        cancelButtonText: "取消",
-        type: "warning",
-      }
-    );
+    await ElMessageBox.confirm('确定要退出登录吗？', '退出登录', {
+      confirmButtonText: '退出',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
 
     await postRequest('/users/logout', {});
     clearLogin();
@@ -286,13 +286,13 @@ const logout = async () => {
     activeTab.value = '';
 
     await router.replace({
-      name: "login",
+      name: 'login',
     });
 
-    ElMessage.success("已退出登录");
-  } catch (error: any) {
+    ElMessage.success('已退出登录');
+  } catch (error) {
     if (error !== 'cancel' && error !== 'close') {
-      ElMessage.error(error.response?.data?.message ?? '退出失败，请重试');
+      ElMessage.error(getErrorMessage(error, '退出失败，请重试'));
     }
   }
 };
@@ -313,7 +313,7 @@ const logout = async () => {
     border-radius: 22px;
     box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
     &::before {
-      content: "noIdea.";
+      content: 'noIdea.';
       margin: 26px 26px 22px;
       color: var(--ui-accent-text, var(--el-color-primary));
       font-size: 28px;
@@ -332,7 +332,7 @@ const logout = async () => {
   .el-main {
     padding: 32px;
     &::before {
-      content: "我的收藏";
+      content: '我的收藏';
       display: block;
       margin-bottom: 8px;
       font-size: 28px;
@@ -354,7 +354,7 @@ const logout = async () => {
   overflow-y: auto;
   border: none;
   &::before {
-    content: "我的分类";
+    content: '我的分类';
     display: block;
     padding: 0 14px 12px;
     color: var(--theme-muted);
@@ -362,7 +362,9 @@ const logout = async () => {
     font-weight: 600;
     letter-spacing: 1.5px;
   }
-  :deep(.el-menu-item-group__title) { display: none; }
+  :deep(.el-menu-item-group__title) {
+    display: none;
+  }
 }
 .el-menu-item {
   height: 46px;
@@ -371,18 +373,25 @@ const logout = async () => {
   justify-content: space-between;
   border-radius: 12px;
   font-size: 14px;
-  transition: background-color 160ms, color 160ms;
+  transition:
+    background-color 160ms,
+    color 160ms;
   &.is-active {
     background: var(--el-color-primary-light-9);
     font-weight: 650;
   }
-  &:hover .edit { display: flex; }
+  &:hover .edit {
+    display: flex;
+  }
 }
 .edit {
   display: none;
   gap: 8px;
   color: var(--theme-muted);
-  svg { width: 15px; height: 15px; }
+  svg {
+    width: 15px;
+    height: 15px;
+  }
 }
 .btnGroup {
   display: flex;
@@ -396,8 +405,13 @@ const logout = async () => {
     width: 18px;
     height: 18px;
     cursor: pointer;
-    transition: color 160ms, transform 160ms;
-    &:hover { color: var(--el-color-primary); transform: translateY(-2px); }
+    transition:
+      color 160ms,
+      transform 160ms;
+    &:hover {
+      color: var(--el-color-primary);
+      transform: translateY(-2px);
+    }
   }
 }
 .header {
@@ -410,7 +424,7 @@ const logout = async () => {
   background: transparent;
   border-bottom: 1px solid var(--el-border-color-lighter);
   &::before {
-    content: "收藏工作台";
+    content: '收藏工作台';
     color: var(--theme-muted);
     white-space: nowrap;
     font-size: 13px;
@@ -456,15 +470,36 @@ const logout = async () => {
   padding-right: 124px;
   color: var(--theme-muted);
   font-size: 12px;
-  p { margin: 0; line-height: 1.6; }
-  .el-link { flex-shrink: 0; font-size: 12px; }
+  p {
+    margin: 0;
+    line-height: 1.6;
+  }
+  .el-link {
+    flex-shrink: 0;
+    font-size: 12px;
+  }
 }
 @media (max-width: 1000px) {
-  .full-height { padding: 14px; gap: 14px; }
-  .full-height .el-aside { width: 196px !important; }
-  .full-height .el-main { padding: 24px; }
-  .header { padding: 0 24px; &::before { display: none; } }
-  .header > .el-input { flex: 1; width: auto; }
+  .full-height {
+    padding: 14px;
+    gap: 14px;
+  }
+  .full-height .el-aside {
+    width: 196px !important;
+  }
+  .full-height .el-main {
+    padding: 24px;
+  }
+  .header {
+    padding: 0 24px;
+    &::before {
+      display: none;
+    }
+  }
+  .header > .el-input {
+    flex: 1;
+    width: auto;
+  }
 }
 @media (max-width: 640px) {
   .full-height {
@@ -476,21 +511,56 @@ const logout = async () => {
     .el-aside {
       width: 100% !important;
       border-radius: 18px;
-      &::before { font-size: 23px; margin: 16px 20px 14px; }
+      &::before {
+        font-size: 23px;
+        margin: 16px 20px 14px;
+      }
     }
-    > .el-container { border-radius: 18px; min-height: 60vh; }
-    .el-main { padding: 22px 18px; &::before { font-size: 24px; } }
-    .el-footer { padding: 0 18px; height: 76px; }
+    > .el-container {
+      border-radius: 18px;
+      min-height: 60vh;
+    }
+    .el-main {
+      padding: 22px 18px;
+      &::before {
+        font-size: 24px;
+      }
+    }
+    .el-footer {
+      padding: 0 18px;
+      height: 76px;
+    }
   }
   .el-menu {
     flex: none;
     overflow-x: auto;
-    &::before { display: none; }
-    :deep(.el-menu-item-group > ul) { display: flex; gap: 6px; width: max-content; }
+    &::before {
+      display: none;
+    }
+    :deep(.el-menu-item-group > ul) {
+      display: flex;
+      gap: 6px;
+      width: max-content;
+    }
   }
-  .el-menu-item { flex-shrink: 0; margin-bottom: 0; }
-  .btnGroup { margin: 12px 20px; padding-top: 12px; justify-content: flex-start; gap: 26px; }
-  .header { height: 72px; padding: 0 18px; gap: 12px; }
-  .bottom { padding-right: 100px; font-size: 11px; }
+  .el-menu-item {
+    flex-shrink: 0;
+    margin-bottom: 0;
+  }
+  .btnGroup {
+    margin: 12px 20px;
+    padding-top: 12px;
+    justify-content: flex-start;
+    gap: 26px;
+  }
+  .header {
+    height: 72px;
+    padding: 0 18px;
+    gap: 12px;
+  }
+  .bottom {
+    padding-right: 100px;
+    font-size: 11px;
+  }
 }
 </style>

@@ -58,23 +58,25 @@
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, reactive, ref } from "vue";
-import { useRouter } from "vue-router";
+import { computed, reactive, ref } from 'vue';
+import { useRouter } from 'vue-router';
+import type { Bookmark } from '@/utils/types';
+import { getErrorMessage } from '@/utils/errors';
 import {
   swapSubItem,
   addsubMenuItem,
   deletesubMenuItem,
   updatesubMenuItem,
-} from "@/api/menuApi/menu";
+} from '@/api/menuApi/menu';
 const props = defineProps<{
   editMode: boolean;
-  activeLists: any[];
+  activeLists: Bookmark[];
   activeTab: string;
 }>();
 const router = useRouter();
 const currentIndex = ref<number | null>(null);
 const draggedItemIndex = ref<number | null>(null);
-const emit = defineEmits(["update-message"]);
+const emit = defineEmits(['update-message']);
 const dialogType = ref();
 const linkTo = (targetUrl: string) => {
   if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
@@ -85,7 +87,7 @@ const linkTo = (targetUrl: string) => {
       hash: destination.hash,
     });
   } else {
-    window.open(targetUrl, "_blank");
+    window.open(targetUrl, '_blank');
   }
 };
 const dialogVisible = ref<boolean>(false);
@@ -93,24 +95,24 @@ const dialogVisible = ref<boolean>(false);
 const hoverIndex = ref<number | null>(null);
 
 const formData = reactive({
-  targetUrl: "",
-  title: "",
-  icon: "",
-  desc: "",
-  id: "",
+  targetUrl: '',
+  title: '',
+  icon: '',
+  desc: '',
+  id: '',
 });
 //拖拽事件
 const onDragStart = (event: DragEvent, index: number) => {
   draggedItemIndex.value = index;
-  (event.dataTransfer as DataTransfer).effectAllowed = "move";
+  (event.dataTransfer as DataTransfer).effectAllowed = 'move';
 };
 
 const orderList = computed(() => {
-  return [...props.activeLists].sort((a: any, b: any) => a.order - b.order);
+  return [...props.activeLists].sort((a, b) => a.order - b.order);
 });
 
 //拖拽改动
-const onDrop = (event: DragEvent, id: number) => {
+const onDrop = (_event: DragEvent, id: number) => {
   if (draggedItemIndex.value !== null) {
     swapSubItem({
       firstId: id,
@@ -118,10 +120,10 @@ const onDrop = (event: DragEvent, id: number) => {
     }).then((res) => {
       if (res.status == 200) {
         ElMessage({
-          message: "位置交换成功",
-          type: "success",
+          message: '位置交换成功',
+          type: 'success',
         });
-        emit("update-message");
+        emit('update-message');
       }
     });
     draggedItemIndex.value = null;
@@ -135,15 +137,15 @@ const onDragOver = (index: number) => {
 
 const showAdd = () => {
   dialogVisible.value = true;
-  dialogType.value = "add";
+  dialogType.value = 'add';
   resetData();
 };
 const resetData = () => {
-  formData.targetUrl = "";
-  formData.title = "";
-  formData.icon = "";
-  formData.desc = "";
-  formData.id = "";
+  formData.targetUrl = '';
+  formData.title = '';
+  formData.icon = '';
+  formData.desc = '';
+  formData.id = '';
 };
 
 //类似hover事件
@@ -152,34 +154,34 @@ const handleHover = (index: number) => {
 };
 
 //编辑书签
-const editDetail = (i: any) => {
+const editDetail = (i: Bookmark) => {
   dialogVisible.value = true;
-  dialogType.value = "update";
+  dialogType.value = 'update';
   formData.targetUrl = i.targetUrl;
   formData.title = i.title;
-  formData.id = i.id;
+  formData.id = String(i.id);
   formData.icon = i.icon || '';
   formData.desc = i.desc || '';
 };
 
 //删除书签
-const deleteItem = (id: string) => {
+const deleteItem = (id: number) => {
   deletesubMenuItem({
     subMenuId: id,
   })
-    .then((res: any) => {
+    .then((res) => {
       if (res.status == 200) {
         ElMessage({
-          message: "删除书签成功",
-          type: "success",
+          message: '删除书签成功',
+          type: 'success',
         });
-        emit("update-message");
+        emit('update-message');
       }
     })
-    .catch((error: any) => {
+    .catch((error: unknown) => {
       ElMessage({
-        message: error.response?.data?.message ?? error.message,
-        type: "error",
+        message: getErrorMessage(error, '删除书签失败'),
+        type: 'error',
       });
     });
 };
@@ -188,10 +190,10 @@ const addSubMenus = async () => {
     ...formData,
     menuId: props.activeTab,
   };
-  const res: any = await addsubMenuItem(params);
+  const res = await addsubMenuItem(params);
   if (res.status === 201) {
-    ElMessage.success("添加书签成功");
-    emit("update-message");
+    ElMessage.success('添加书签成功');
+    emit('update-message');
   }
 };
 
@@ -200,10 +202,10 @@ const editSubMenus = async () => {
     ...formData,
     subMenuId: formData.id,
   };
-  const res: any = await updatesubMenuItem(params);
+  const res = await updatesubMenuItem(params);
   if (res.status === 200) {
-    ElMessage.success("更新书签成功");
-    emit("update-message");
+    ElMessage.success('更新书签成功');
+    emit('update-message');
   }
 };
 
@@ -211,14 +213,24 @@ const editSubMenus = async () => {
 const confirmLabel = async () => {
   if (formData.targetUrl && formData.title) {
     // let len = initData.value.filter((i) => i.id == formData.id).length;
-    if (dialogType.value == "update") {
-      try { await editSubMenus(); dialogVisible.value = false; }
-      catch (error: any) { ElMessage.error(error.response?.data?.message ?? '更新失败'); }
+    if (dialogType.value == 'update') {
+      try {
+        await editSubMenus();
+        dialogVisible.value = false;
+      } catch (error) {
+        ElMessage.error(getErrorMessage(error, '更新失败'));
+      }
     } else {
-      try { await addSubMenus(); dialogVisible.value = false; }
-      catch (error: any) { ElMessage.error(error.response?.data?.message ?? '添加失败'); }
+      try {
+        await addSubMenus();
+        dialogVisible.value = false;
+      } catch (error) {
+        ElMessage.error(getErrorMessage(error, '添加失败'));
+      }
     }
-  } else { ElMessage.warning('请填写网址和书签名称'); }
+  } else {
+    ElMessage.warning('请填写网址和书签名称');
+  }
 };
 
 // watch(
@@ -236,7 +248,7 @@ const confirmLabel = async () => {
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 18px;
   &::before {
-    content: "常用网址与灵感，都有自己的位置。";
+    content: '常用网址与灵感，都有自己的位置。';
     grid-column: 1 / -1;
     margin-bottom: 14px;
     color: var(--theme-muted);
@@ -257,9 +269,12 @@ const confirmLabel = async () => {
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 16px;
     box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
-    transition: transform 180ms, border-color 180ms, box-shadow 180ms;
+    transition:
+      transform 180ms,
+      border-color 180ms,
+      box-shadow 180ms;
     &:not(.lastBox)::before {
-      content: "";
+      content: '';
       display: grid;
       place-items: center;
       width: 42px;
@@ -272,7 +287,7 @@ const confirmLabel = async () => {
       font-weight: 500;
     }
     &:not(.lastBox)::after {
-      content: "";
+      content: '';
       position: absolute;
       left: 32px;
       top: 50%;
@@ -281,7 +296,8 @@ const confirmLabel = async () => {
       height: 18px;
       pointer-events: none;
       background: var(--ui-accent-text, var(--el-color-primary));
-      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 17 17 7M7 7h10v10' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / contain no-repeat;
+      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 17 17 7M7 7h10v10' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
+        center / contain no-repeat;
     }
     :deep(.el-card__body) {
       display: flex;
@@ -304,8 +320,14 @@ const confirmLabel = async () => {
       border-color: var(--el-color-primary-light-5);
       box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
     }
-    &.hoverStyle { border: 2px dashed var(--el-color-primary); }
-    .edit { display: flex; gap: 10px; color: var(--theme-muted); }
+    &.hoverStyle {
+      border: 2px dashed var(--el-color-primary);
+    }
+    .edit {
+      display: flex;
+      gap: 10px;
+      color: var(--theme-muted);
+    }
   }
   .lastBox {
     justify-content: center;
@@ -313,20 +335,44 @@ const confirmLabel = async () => {
     border-style: dashed;
     box-shadow: none;
     color: var(--theme-muted);
-    :deep(.el-card__body) { justify-content: center; }
-    :deep(svg) { width: 24px; height: 24px; }
+    :deep(.el-card__body) {
+      justify-content: center;
+    }
+    :deep(svg) {
+      width: 24px;
+      height: 24px;
+    }
   }
-  .autoBtn { display: flex; gap: 12px; justify-content: space-between; }
-  :deep(.el-form-item) { margin-bottom: 16px; }
+  .autoBtn {
+    display: flex;
+    gap: 12px;
+    justify-content: space-between;
+  }
+  :deep(.el-form-item) {
+    margin-bottom: 16px;
+  }
 }
 @media (max-width: 640px) {
   .mainLabel {
     grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
     gap: 12px;
-    .box { padding: 16px; min-height: 90px; gap: 12px; }
-    .box:not(.lastBox)::before { width: 34px; height: 34px; font-size: 20px; border-radius: 10px; }
-    .box:not(.lastBox)::after { left: 24px; }
-    .autoBtn { flex-wrap: wrap; }
+    .box {
+      padding: 16px;
+      min-height: 90px;
+      gap: 12px;
+    }
+    .box:not(.lastBox)::before {
+      width: 34px;
+      height: 34px;
+      font-size: 20px;
+      border-radius: 10px;
+    }
+    .box:not(.lastBox)::after {
+      left: 24px;
+    }
+    .autoBtn {
+      flex-wrap: wrap;
+    }
   }
 }
 </style>

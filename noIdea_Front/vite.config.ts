@@ -7,23 +7,19 @@ import { resolve } from 'path';
 // 导入`IconsResolver`来解析图标
 import Icons from 'unplugin-icons/vite';
 import IconsResolver from 'unplugin-icons/resolver';
-import eslintPlugin from 'vite-plugin-eslint';
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [
     vue(),
-    eslintPlugin({
-      fix: false, // 不自动修复，确保代码问题报告，但不影响项目运行
-      emitWarning: true, // 仅发出警告，不阻止编译
-      emitError: false, // 不会阻止项目启动 
-    }),
     AutoImport({
       imports: ['vue', 'vue-router'],
-      resolvers: [
-        ElementPlusResolver(), 
-        IconsResolver({ prefix: 'Icon' })
-      ], // 添加 IconsResolver
+      resolvers: [ElementPlusResolver(), IconsResolver({ prefix: 'Icon' })], // 添加 IconsResolver
       dts: 'src/auto-imports.d.ts',
+      eslintrc: {
+        enabled: true,
+        filepath: './.eslintrc-auto-import.json',
+        globalsPropValue: 'readonly',
+      },
     }),
     Components({
       resolvers: [
@@ -39,7 +35,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': resolve(__dirname, 'src'),
-      '@views': resolve(__dirname, 'src/views')
-    }
-  }
+      '@views': resolve(__dirname, 'src/views'),
+    },
+  },
 });

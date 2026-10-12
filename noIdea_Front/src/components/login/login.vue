@@ -22,9 +22,7 @@
         </el-form-item>
         <div class="btnGroup">
           <el-button @click="goRegister">注册</el-button>
-          <el-button type="primary" native-type="submit"
-            >登录</el-button
-          >
+          <el-button type="primary" native-type="submit">登录</el-button>
         </div>
       </el-form>
     </div>
@@ -32,17 +30,19 @@
 </template>
 
 <script lang="ts" setup>
-import GradientBackground from "../../components/background/GradientBackground.vue";
-import { reactive, ref } from "vue";
-import type { FormProps } from "element-plus";
-import { useRouter, useRoute } from "vue-router";
+defineOptions({ name: 'LoginPage' });
+import GradientBackground from '../../components/background/GradientBackground.vue';
+import { reactive, ref } from 'vue';
+import type { FormProps } from 'element-plus';
+import { useRouter, useRoute } from 'vue-router';
 import { saveLogin, type LoginResponse } from '@/utils/auth';
 import { postRequest } from '../../utils/httpService';
+import { getErrorMessage } from '@/utils/errors';
 
-const labelPosition = ref<FormProps["labelPosition"]>("right");
+const labelPosition = ref<FormProps['labelPosition']>('right');
 const formLabelAlign = reactive({
-  username: "cara",
-  password: "",
+  username: 'cara',
+  password: '',
 });
 const isLoading = ref(false);
 const router = useRouter();
@@ -53,20 +53,22 @@ const loginIn = async () => {
   isLoading.value = true;
 
   try {
-    const response = await postRequest<LoginResponse>("/users/login", formLabelAlign);
+    const response = await postRequest<LoginResponse>('/users/login', formLabelAlign);
     saveLogin(response);
 
-    ElMessage.success("登录成功");
+    ElMessage.success('登录成功');
     const target = typeof route.query.redirect === 'string' ? route.query.redirect : '/home';
-    await router.replace(target.startsWith('/') && !target.startsWith('//') && target !== '/' ? target : '/home');
-  } catch (error: any) {
-    ElMessage.error(error.response?.data?.message ?? "登录失败");
+    await router.replace(
+      target.startsWith('/') && !target.startsWith('//') && target !== '/' ? target : '/home',
+    );
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '登录失败'));
   } finally {
     isLoading.value = false;
   }
 };
 const goRegister = () => {
-  router.push("/register");
+  router.push('/register');
 };
 </script>
 
@@ -89,16 +91,24 @@ h1 {
   background: var(--el-bg-color);
   box-shadow: 0 24px 70px rgba(15, 23, 42, 0.08);
   &::before {
-    content: "登录你的收藏空间";
+    content: '登录你的收藏空间';
     display: block;
     margin-bottom: 28px;
     font-size: 22px;
     font-weight: 650;
     letter-spacing: -0.5px;
   }
-  .el-form { width: 100%; }
-  :deep(.el-form-item) { flex-direction: column; align-items: stretch; margin-bottom: 20px; }
-  :deep(.el-form-item__label-wrap) { margin-left: 0 !important; }
+  .el-form {
+    width: 100%;
+  }
+  :deep(.el-form-item) {
+    flex-direction: column;
+    align-items: stretch;
+    margin-bottom: 20px;
+  }
+  :deep(.el-form-item__label-wrap) {
+    margin-left: 0 !important;
+  }
   :deep(.el-form-item__label) {
     justify-content: flex-start;
     width: auto !important;
@@ -110,16 +120,34 @@ h1 {
     font-weight: 550;
     color: var(--theme-muted);
   }
-  :deep(.el-form-item__content) { margin-left: 0 !important; }
-  :deep(.el-input__wrapper) { height: 46px; padding: 0 14px; border-radius: 12px; }
+  :deep(.el-form-item__content) {
+    margin-left: 0 !important;
+  }
+  :deep(.el-input__wrapper) {
+    height: 46px;
+    padding: 0 14px;
+    border-radius: 12px;
+  }
   .btnGroup {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 12px;
     margin-top: 28px;
-    .el-button { width: 100%; margin: 0; height: 44px; border-radius: 12px; font-weight: 550; }
+    .el-button {
+      width: 100%;
+      margin: 0;
+      height: 44px;
+      border-radius: 12px;
+      font-weight: 550;
+    }
   }
 }
-.input-fixed-width { width: 100%; }
-@media (max-width: 480px) { .block { padding: 26px; } }
+.input-fixed-width {
+  width: 100%;
+}
+@media (max-width: 480px) {
+  .block {
+    padding: 26px;
+  }
+}
 </style>

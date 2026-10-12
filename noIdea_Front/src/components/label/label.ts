@@ -47,41 +47,42 @@ export const labelData: labelType[] = [
     title: '腾讯视频',
     targetUrl: 'https://v.qq.com/',
     type: '2',
-    id: 'tencent'
+    id: 'tencent',
   },
   {
     icon: '',
     title: '阿里巴巴矢量库',
-    targetUrl: 'https://www.iconfont.cn/collections/index?spm=a313x.collections_index.i1.da2e3581b.56063a81HWsFks&type=1',
+    targetUrl:
+      'https://www.iconfont.cn/collections/index?spm=a313x.collections_index.i1.da2e3581b.56063a81HWsFks&type=1',
     type: '3',
-    id: 'icon'
+    id: 'icon',
   },
   {
     icon: ' &#xe640;',
     title: 'ChatGPT',
     targetUrl: 'https://chat.openai.com/chat',
     type: '4',
-    id: 'gpt'
+    id: 'gpt',
   },
   {
     icon: ' &#xe640;',
     title: 'github',
     targetUrl: 'https://github.com/search?q=react&type=repositories',
     type: '4',
-    id: 'github2'
+    id: 'github2',
   },
   {
     icon: ' &#xe640;',
     title: '签名版',
     targetUrl: '/signPad',
     type: '5',
-    id: 'signFunction'
+    id: 'signFunction',
   },
   {
     icon: ' &#xe640;',
     title: '聊天框样式',
     targetUrl: '/chat',
     type: '5',
-    id: 'chatFunction'
+    id: 'chatFunction',
   },
-]
+];
