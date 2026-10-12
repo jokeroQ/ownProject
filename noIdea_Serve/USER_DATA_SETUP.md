@@ -10,6 +10,13 @@
 4. 在 `noIdea_Serve` 目录运行 `npm run migrate:user-data`。
 5. 运行 `npm start`；前端在 `noIdea_Front` 运行 `npm run dev`。必要时设置 `VITE_API_BASE_URL` 为后端 API 地址。
 
+export DB_HOST=localhost
+export DB_PORT=3306
+export DB_NAME=noIdea
+export DB_USER=root
+export DB_PASSWORD='替换成你的MySQL密码'
+npm run migrate:user-data
+
 迁移会增加 `menus.user_id`、书签简介 `menulists.desc`、`bookmark_templates` 和 `user_sessions` 表。第一次执行时把所有现有分类和书签完整保存为独立模板，再把旧记录归到 cara，旧分类/书签 ID 保留；其他已存在的账号也获得各自的模板副本。分类显示 index 规范化为记录 ID。再次执行不会重建模板、重置个人书签或重新填充已删除的分类。
 
 MySQL DDL 不支持与数据迁移一起事务回滚，因此需要事先备份。数据复制、模板保存和归属更新使用一个事务；脚本可在修复失败原因后重跑。不存在 cara 会在修改数据库前停止。仓库 noidea.sql 是旧版样例，里面未包含 cara；新库导入后先通过旧版注册 cara，或用自己的已有数据库备份，再执行迁移。
