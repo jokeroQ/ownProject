@@ -70,6 +70,29 @@ async function main() {
     };
     const initialMenus = await menuRequest('GET', '/menu/getMenus');
     assert.equal(await page.locator('[data-section]').count(), initialMenus.length);
+    const iconBookmark = initialMenus[0].menuLists[0];
+    const iconImage = await sharp({ create: { width: 2, height: 2, channels: 3, background: '#409eff' } }).png().toBuffer();
+    const iconSource = 'data:image/png;base64,' + iconImage.toString('base64');
+    const updateIcon = icon => menuRequest('PUT', `/menu/updateSubmenus/${iconBookmark.id}`, {
+      title: iconBookmark.title, targetUrl: iconBookmark.targetUrl, desc: iconBookmark.desc || '', icon,
+    });
+    const iconCard = page.locator(`[data-section="${initialMenus[0].id}"] .draggable-item`).first();
+    await updateIcon(iconSource);
+    await page.reload();
+    await iconCard.locator('.bookmark-icon img').waitFor();
+    await page.waitForFunction(() => { const image = document.querySelector('[data-section] .draggable-item .bookmark-icon img'); return image?.complete && image.naturalWidth > 0; });
+    assert.equal(await iconCard.locator('.bookmark-icon img').getAttribute('src'), iconSource);
+    await updateIcon('/bookmark-icon-missing.png');
+    await page.reload();
+    await iconCard.locator('.bookmark-initial').waitFor();
+    assert.equal(await iconCard.locator('.bookmark-initial').textContent(), Array.from(iconBookmark.title.trim())[0]);
+    await updateIcon('');
+    await page.reload();
+    await iconCard.locator('.bookmark-initial').waitFor();
+    assert.equal(await iconCard.locator('.bookmark-icon img').count(), 0);
+    assert.equal(await iconCard.locator('.bookmark-initial').textContent(), Array.from(iconBookmark.title.trim())[0]);
+    await updateIcon(iconBookmark.icon || '');
+    console.log('PASS: 书签显示保存的图标，空图标及加载失败时显示名称首字');
     const lastCategory = String(initialMenus.at(-1).id);
     await page.locator(`[data-category="${lastCategory}"]`).click();
     await page.waitForFunction(id => document.querySelector(`.el-menu-item[data-category="${id}"]`)?.classList.contains('is-active'), lastCategory);

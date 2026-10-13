@@ -16,7 +16,8 @@
       @mouseleave="handleHover(-1)"
       :class="{ hoverStyle: hoverIndex == index }"
     >
-      <span>{{ i.title }}</span>
+      <BookmarkIcon :icon="i.icon" :title="i.title" />
+      <span class="bookmark-title">{{ i.title }}</span>
       <!--  -->
       <div v-show="currentIndex == index && editMode" class="edit">
         <i-ep-edit @click.stop="editDetail(i)"></i-ep-edit>
@@ -47,7 +48,7 @@
         <div class="autoBtn">
           <el-button>自动获取网站名称</el-button>
           <el-button>自动获取图标地址</el-button>
-          <el-card>图标</el-card>
+          <BookmarkIcon :icon="formData.icon" :title="formData.title" />
         </div>
       </el-form>
       <template #footer>
@@ -61,6 +62,7 @@
 </template>
 <script lang="ts" setup>
 import { computed, reactive, ref } from 'vue';
+import BookmarkIcon from './BookmarkIcon.vue';
 import { useRouter } from 'vue-router';
 import type { Bookmark } from '@/utils/types';
 import { getErrorMessage } from '@/utils/errors';
@@ -269,32 +271,6 @@ const confirmLabel = async () => {
       transform 180ms,
       border-color 180ms,
       box-shadow 180ms;
-    &:not(.lastBox)::before {
-      content: '';
-      display: grid;
-      place-items: center;
-      width: 42px;
-      height: 42px;
-      flex-shrink: 0;
-      border-radius: 12px;
-      color: var(--el-color-primary);
-      background: var(--el-color-primary-light-9);
-      font-size: 22px;
-      font-weight: 500;
-    }
-    &:not(.lastBox)::after {
-      content: '';
-      position: absolute;
-      left: 32px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 18px;
-      height: 18px;
-      pointer-events: none;
-      background: var(--ui-accent-text, var(--el-color-primary));
-      mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M7 17 17 7M7 7h10v10' fill='none' stroke='black' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
-        center / contain no-repeat;
-    }
     :deep(.el-card__body) {
       display: flex;
       align-items: center;
@@ -303,7 +279,9 @@ const confirmLabel = async () => {
       width: 100%;
       min-width: 0;
       padding: 0;
-      > span {
+      > .bookmark-title {
+        flex: 1;
+        min-width: 0;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -356,15 +334,6 @@ const confirmLabel = async () => {
       padding: 16px;
       min-height: 90px;
       gap: 12px;
-    }
-    .box:not(.lastBox)::before {
-      width: 34px;
-      height: 34px;
-      font-size: 20px;
-      border-radius: 10px;
-    }
-    .box:not(.lastBox)::after {
-      left: 24px;
     }
     .autoBtn {
       flex-wrap: wrap;
