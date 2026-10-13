@@ -523,6 +523,15 @@ const logout = async () => {
     background: transparent;
   }
 }
+.el-aside,
+.el-menu,
+.el-main {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
 .category-section {
   margin-top: 28px;
   padding: 16px;
