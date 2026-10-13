@@ -1,5 +1,11 @@
 export default [
   {
+    path: '/flowchart',
+    name: 'flowchart',
+    component: () => import('@views/flowchart/index.vue'),
+    meta: { title: '流程图', requiresAuth: true },
+  },
+  {
     path: '/home',
     name: 'home',
     component: () => import('@views/home/index.vue'),

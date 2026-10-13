@@ -313,8 +313,13 @@ watch(
     }
   },
 );
-onMounted(() => {
-  getMenu();
+onMounted(async () => {
+  try {
+    await postRequest('/flowchart/entry', {});
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '流程图入口初始化失败'));
+  }
+  await getMenu();
 });
 //获取最新的菜单
 const getMenu = async () => {

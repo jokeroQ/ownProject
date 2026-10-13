@@ -6,6 +6,7 @@ const db = {
   Session: require('./Session'),
   BookmarkTemplate: require('./BookmarkTemplate'),
   UserTheme: require('./UserTheme'),
+  UserFlowchart: require('./UserFlowchart'),
   sequelize,
 };
 for (const model of Object.values(db)) {

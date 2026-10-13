@@ -35,6 +35,7 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     const cara = await User.create({ username: 'cara', email: 'cara-test@example.test', password: await bcrypt.hash(password, 10) });
     await migrate();
     await require('../migrations/themes')();
+    await require('../migrations/flowcharts')();
     const snapshot = JSON.parse(JSON.stringify((await BookmarkTemplate.findByPk(1)).content));
     await t.test('旧记录归 cara，模板独立；重复迁移保持记录', async () => {
       const old = await Menu.findAll({ where: { user_id: cara.id }, order: [['id', 'ASC']] });
@@ -161,6 +162,45 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
         assert.equal((await request('POST', '/users/register', null, { username: 'rollback-user', password, email: 'rollback@example.test' })).status, 500);
         assert.equal(await User.count({ where: { username: 'rollback-user' } }), 0);
       } finally { await BookmarkTemplate.update({ id: 1 }, { where: { id: 2 } }); }
+    });
+    await t.test('流程图入口仅安装一次，移动删除后不重建，不修改默认模板', async () => {
+      const install = () => request('POST', '/flowchart/entry', alice, {});
+      assert.ok((await Promise.all([install(), install()])).every(result => result.status === 200));
+      const menus = (await request('GET', '/menu/getMenus', alice)).body.data;
+      const menu = menus.find(item => item.title.startsWith('有趣功能点'));
+      const entries = menus.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart');
+      assert.equal(entries.length, 1); assert.equal(entries[0].menu_id, menu.id);
+      assert.equal((await request('GET', '/menu/getMenus', bob)).body.data.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart').length, 0);
+      assert.deepEqual((await BookmarkTemplate.findByPk(1)).content, snapshot);
+      await request('POST', '/menu/subMenus/move', alice, { subMenuId: entries[0].id, menuId: menus[0].id });
+      await install();
+      assert.equal((await request('GET', '/menu/getMenus', alice)).body.data[0].menuLists.filter(item => item.targetUrl === '/flowchart').length, 1);
+      await request('DELETE', `/menu/deleteSubmenus/${entries[0].id}`, alice);
+      await install();
+      assert.equal((await request('GET', '/menu/getMenus', alice)).body.data.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart').length, 0);
+    });
+    await t.test('流程图数据库保存、版本冲突、并发保护、格式校验与账户隔离', async () => {
+      const initial = (await request('GET', '/flowchart', alice)).body.data;
+      const document = structuredClone(initial.document);
+      document.nodes[0].label = 'alice-private';
+      const save = (revision, graph = document) => request('PUT', '/flowchart', alice, { document: graph, revision, user_id: bobMenus[0].user_id });
+      const first = await save(initial.revision);
+      assert.equal(first.status, 200); assert.equal(first.body.data.revision, 1);
+      assert.equal((await request('GET', '/flowchart', bob)).body.data.document.nodes[0].label, '开始');
+      assert.equal((await request('GET', `/flowchart?user_id=${aliceMenus[0].user_id}`, bob)).body.data.document.nodes[0].label, '开始');
+      assert.equal((await save(initial.revision)).status, 409);
+      const parallel = await Promise.all([save(1), save(1)]);
+      assert.deepEqual(parallel.map(result => result.status).sort(), [200, 409]);
+      const invalid = structuredClone(document); invalid.edges[0].to = 'missing-node';
+      assert.equal((await save(2, invalid)).status, 400);
+      invalid.edges = []; invalid.nodes[0].x = -1;
+      assert.equal((await save(2, invalid)).status, 400);
+      assert.equal((await save(2, { version: 1, nodes: Array(101).fill(document.nodes[0]), edges: [] })).status, 400);
+      assert.equal((await request('GET', '/flowchart')).status, 401);
+      assert.equal((await request('PUT', '/flowchart', null, { document, revision: 0 })).status, 401);
+      await require('../migrations/flowcharts')();
+      assert.equal((await request('GET', '/flowchart', alice)).body.data.document.nodes[0].label, 'alice-private');
+      assert.equal((await request('GET', '/flowchart', alice)).body.data.revision, 2);
     });
     await t.test('主题迁移可重跑、偏好按用户保存', async () => {
       assert.deepEqual((await request('GET', '/theme', alice)).body.data, {

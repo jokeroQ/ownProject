@@ -6,6 +6,7 @@
     "test": "node --test tests/*.test.js",
     "migrate:user-data": "node migrations/user-data.js",
     "migrate:themes": "node migrations/themes.js",
+    "migrate:flowcharts": "node migrations/flowcharts.js",
     "dev": "nodemon app.js",
     "start": "node app.js"
   },
