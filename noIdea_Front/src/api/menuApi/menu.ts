@@ -25,3 +25,8 @@ export const swapSubItem = (data: {
   firstId: RecordId;
   secondId: RecordId;
 }): Promise<ApiResponse<void>> => postRequest('/menu/subMenus/swap', data);
+export const moveSubItem = (data: {
+  subMenuId: RecordId;
+  menuId: RecordId;
+  beforeId?: RecordId;
+}): Promise<ApiResponse<void>> => postRequest('/menu/subMenus/move', data);

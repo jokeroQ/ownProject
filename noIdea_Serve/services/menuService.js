@@ -76,3 +76,29 @@ exports.swapOrder = (firstId, secondId, userId) => sequelize.transaction(async t
   await first.update({ order: second.order }, { transaction });
   await second.update({ order }, { transaction });
 });
+
+// Lock parents in ID order, then re-read: all ordering writes share these locks.
+exports.moveSubMenu = (bookmarkId, menuId, beforeId, userId) => sequelize.transaction({ isolationLevel: 'READ COMMITTED' }, async transaction => {
+  const bookmark = await ownedBookmark(bookmarkId, userId, transaction);
+  const sourceId = bookmark.menu_id;
+  const targetId = id(menuId);
+  for (const parentId of [...new Set([sourceId, targetId])].sort((a, b) => a - b)) {
+    await ownedMenu(parentId, userId, transaction, true);
+  }
+  await bookmark.reload({ transaction, lock: transaction.LOCK.UPDATE, include: [] });
+  if (bookmark.menu_id !== sourceId) fail('书签已被移动，请刷新后重试', 409);
+  const target = await MenuList.findAll({ where: { menu_id: targetId }, order: [['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+  const before = beforeId == null ? null : id(beforeId);
+  if (before !== null && !target.some(item => item.id === before)) fail('目标书签不存在', 404);
+  if (before === bookmark.id) return;
+  const reordered = target.filter(item => item.id !== bookmark.id);
+  const position = before === null ? reordered.length : reordered.findIndex(item => item.id === before);
+  reordered.splice(position, 0, bookmark);
+  for (let i = 0; i < reordered.length; i++) {
+    await reordered[i].update({ menu_id: targetId, order: i + 1 }, { transaction });
+  }
+  if (sourceId !== targetId) {
+    const source = await MenuList.findAll({ where: { menu_id: sourceId }, order: [['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+    for (let i = 0; i < source.length; i++) await source[i].update({ order: i + 1 }, { transaction });
+  }
+});

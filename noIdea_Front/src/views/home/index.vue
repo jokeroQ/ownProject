@@ -6,6 +6,11 @@
           <el-menu-item
             @click="changeTab(String(i.id))"
             :index="String(i.id)"
+            :data-category="i.id"
+            @dragover="allowDrop($event, String(i.id))"
+            @dragleave="dropCategory = ''"
+            @drop="dropBookmark($event, String(i.id))"
+            :class="{ 'drop-target': dropCategory === String(i.id) }"
             v-for="i in state.menus"
             :key="i.index"
             >{{ i.title }}
@@ -50,14 +55,46 @@
 
         <el-button type="danger" plain @click="logout"> 退出登录 </el-button>
       </el-header>
-      <el-main>
-        <MainLabel
-          :activeTab="activeTab"
-          :editMode="editMode"
-          :activeLists="activeLists"
-          @update-message="getMenu"
-        ></MainLabel>
-      </el-main>
+      <main
+        ref="contentRoot"
+        class="el-main"
+        @scroll.passive="onContentScroll"
+        @wheel.passive="cancelAutoScroll"
+        @touchstart.passive="cancelAutoScroll"
+        @dragover="onContentDragOver"
+        @drop="stopDrag"
+        @dragleave="leaveContent"
+      >
+        <p v-if="editMode" class="drag-help">
+          拖到书签上可插到它前面；拖到分类名称或分区空白处可移到末尾。
+        </p>
+        <section
+          v-for="menu in state.menus"
+          :key="menu.id"
+          :data-section="menu.id"
+          class="category-section"
+          :class="{ 'drop-target': dropCategory === String(menu.id) }"
+          @dragover="allowDrop($event, String(menu.id))"
+          @dragleave="dropCategory = ''"
+          @drop="dropBookmark($event, String(menu.id))"
+        >
+          <h2>{{ menu.title }}</h2>
+          <MainLabel
+            :activeTab="String(menu.id)"
+            :editMode="editMode"
+            :activeLists="menu.menuLists"
+            :dragging="draggedBookmark !== null"
+            @update-message="getMenu"
+            @drag-start="startDrag"
+            @drag-end="stopDrag"
+            @drop-bookmark="moveBookmark(String(menu.id), $event)"
+          />
+          <p v-if="!menu.menuLists.length && !editMode" class="empty-category">
+            暂无书签，开启编辑模式后可添加或拖入书签。
+          </p>
+        </section>
+        <p v-if="!state.menus.length" class="empty-category">点击左侧添加分类，开始收藏。</p>
+      </main>
       <el-footer>
         <div class="bottom">
           <p>{{ state.moto }}</p>
@@ -93,9 +130,9 @@ defineOptions({ name: 'HomePage' });
 import MainLabel from '@/components/label/MainLabel.vue';
 import ThemeSettings from '@/components/theme/ThemeSettings.vue';
 import { getMotto } from '@views/home/home';
-import { deleteMenuItem } from '@/api/menuApi/menu';
+import { deleteMenuItem, moveSubItem } from '@/api/menuApi/menu';
 import { Search } from '@element-plus/icons-vue';
-import { reactive, ref, watch } from 'vue';
+import { reactive, ref, watch, nextTick, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { postRequest, getRequest, putRequest } from '../../utils/httpService';
 import { useRouter, useRoute } from 'vue-router';
@@ -120,13 +157,138 @@ const state = reactive<{ moto: string; menus: Menu[] }>({
 const editMode = ref<boolean>(false);
 const mode = ref<string>('add');
 const index = ref<string>('');
+const contentRoot = ref<HTMLElement | null>(null);
+const draggedBookmark = ref<number | null>(null);
+const dropCategory = ref('');
+const moving = ref(false);
+let scrollTarget = '';
+let scrollFrame = 0;
+let dragFrame = 0;
+let dragSpeed = 0;
+let categoryNavigation = 0;
+const sections = () =>
+  Array.from(contentRoot.value?.querySelectorAll<HTMLElement>('[data-section]') || []);
+const scrollToCategory = (category: string, smooth = false) => {
+  const root = contentRoot.value;
+  const section = sections().find((item) => item.dataset.section === category);
+  if (!root || !section) return;
+  scrollTarget = category;
+  root.scrollTo({
+    top:
+      section.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 24,
+    behavior:
+      smooth && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'smooth'
+        : 'instant',
+  });
+};
+const cancelAutoScroll = () => {
+  scrollTarget = '';
+  contentRoot.value?.scrollTo({ top: contentRoot.value.scrollTop, behavior: 'instant' });
+};
+const onContentScroll = () => {
+  cancelAnimationFrame(scrollFrame);
+  scrollFrame = requestAnimationFrame(() => {
+    const root = contentRoot.value;
+    if (!root) return;
+    const all = sections();
+    const top = root.getBoundingClientRect().top + 48;
+    const current =
+      all.filter((section) => section.getBoundingClientRect().top <= top).at(-1) || all[0];
+    const atBottom =
+      root.scrollHeight > root.clientHeight + 2 &&
+      root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+    if (scrollTarget) {
+      const target = all.find((section) => section.dataset.section === scrollTarget);
+      if (target && (Math.abs(target.getBoundingClientRect().top - top + 24) < 3 || atBottom))
+        scrollTarget = '';
+      return;
+    }
+    const category = atBottom ? all.at(-1)?.dataset.section : current?.dataset.section;
+    if (category && category !== activeTab.value) {
+      activeTab.value = category;
+      syncCategoryUrl(category);
+      document
+        .querySelector<HTMLElement>(`.el-menu-item[data-category="${category}"]`)
+        ?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+    }
+  });
+};
+const startDrag = (id: number) => {
+  draggedBookmark.value = id;
+};
+const stopDrag = () => {
+  draggedBookmark.value = null;
+  dropCategory.value = '';
+  dragSpeed = 0;
+  cancelAnimationFrame(dragFrame);
+  dragFrame = 0;
+};
+const allowDrop = (event: DragEvent, category: string) => {
+  if (!editMode.value || draggedBookmark.value === null || moving.value) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
+  dropCategory.value = category;
+};
+const moveBookmark = async (menuId: string, beforeId?: number) => {
+  const subMenuId = draggedBookmark.value;
+  stopDrag();
+  if (subMenuId === null || !editMode.value || moving.value || subMenuId === beforeId) return;
+  moving.value = true;
+  try {
+    await moveSubItem({ subMenuId, menuId, beforeId });
+    await getMenu();
+    ElMessage.success('书签已移动');
+  } catch (error) {
+    ElMessage.error(getErrorMessage(error, '移动失败，请重试'));
+  } finally {
+    moving.value = false;
+  }
+};
+const dropBookmark = (event: DragEvent, menuId: string) => {
+  if (draggedBookmark.value === null || !editMode.value) return;
+  event.preventDefault();
+  event.stopPropagation();
+  void moveBookmark(menuId);
+};
+const onContentDragOver = (event: DragEvent) => {
+  const root = contentRoot.value;
+  if (!root || draggedBookmark.value === null) return;
+  scrollTarget = '';
+  const bounds = root.getBoundingClientRect();
+  dragSpeed = event.clientY < bounds.top + 70 ? -12 : event.clientY > bounds.bottom - 70 ? 12 : 0;
+  if (dragFrame) return;
+  const step = () => {
+    if (draggedBookmark.value === null) {
+      dragFrame = 0;
+      return;
+    }
+    root.scrollTop += dragSpeed;
+    dragFrame = requestAnimationFrame(step);
+  };
+  dragFrame = requestAnimationFrame(step);
+};
+const leaveContent = (event: DragEvent) => {
+  if (!(event.relatedTarget instanceof Node) || !contentRoot.value?.contains(event.relatedTarget))
+    dragSpeed = 0;
+};
+onBeforeUnmount(() => {
+  stopDrag();
+  cancelAnimationFrame(scrollFrame);
+});
 const syncCategoryUrl = (category: string) => {
   if (route.name !== 'home' || route.query.category === (category || undefined)) return;
-  void router.replace({
-    name: 'home',
-    query: { ...route.query, category: category || undefined },
-    hash: route.hash,
-  });
+  categoryNavigation++;
+  void router
+    .replace({
+      name: 'home',
+      query: { ...route.query, category: category || undefined },
+      hash: route.hash,
+    })
+    .finally(async () => {
+      await nextTick();
+      categoryNavigation--;
+    });
 };
 const restoreCategory = () => {
   const category = typeof route.query.category === 'string' ? route.query.category : '';
@@ -140,22 +302,31 @@ const restoreCategory = () => {
 watch(
   () => route.query.category,
   () => {
-    if (route.name === 'home' && state.menus.length) restoreCategory();
+    if (
+      !categoryNavigation &&
+      route.name === 'home' &&
+      state.menus.length &&
+      route.query.category !== activeTab.value
+    ) {
+      restoreCategory();
+      scrollToCategory(activeTab.value, true);
+    }
   },
 );
 onMounted(() => {
   getMenu();
 });
-const activeLists = computed(() => {
-  const data = state.menus.find((i) => String(i.id) === activeTab.value);
-  return data ? data.menuLists : [];
-});
 //获取最新的菜单
 const getMenu = async () => {
-  getRequest<Menu[]>('/menu/getMenus')
+  const firstLoad = !state.menus.length;
+  const previousCategory = activeTab.value;
+  return getRequest<Menu[]>('/menu/getMenus')
     .then((res) => {
       state.menus = res.data;
       restoreCategory();
+      return nextTick().then(() => {
+        if (firstLoad || previousCategory !== activeTab.value) scrollToCategory(activeTab.value);
+      });
     })
     .catch((error: unknown) => {
       ElMessage({
@@ -166,8 +337,9 @@ const getMenu = async () => {
 };
 //切换菜单项
 const changeTab = (index: string) => {
-  // The route is the source of truth; update the visible category after its URL is saved.
+  activeTab.value = index;
   syncCategoryUrl(index);
+  scrollToCategory(index, true);
 };
 //新增菜单
 const createMenu = () => {
@@ -189,6 +361,7 @@ const goEdit = () => {
 };
 //关闭编辑模式
 const exitMode = () => {
+  stopDrag();
   editMode.value = false;
   ElMessage({
     message: '已退出编辑模式',
@@ -330,6 +503,9 @@ const logout = async () => {
     box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
   }
   .el-main {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 32px;
     &::before {
       content: '我的收藏';
@@ -346,6 +522,32 @@ const logout = async () => {
     padding: 0 32px;
     background: transparent;
   }
+}
+.category-section {
+  margin-top: 28px;
+  padding: 16px;
+  border: 2px solid transparent;
+  border-radius: 16px;
+  h2 {
+    margin: 0 0 18px;
+    font-size: 20px;
+    color: var(--theme-text);
+  }
+}
+.drop-target {
+  outline: 2px dashed var(--el-color-primary);
+  outline-offset: -2px;
+  background: var(--el-color-primary-light-9);
+}
+.empty-category {
+  color: var(--theme-muted);
+  padding: 12px 0;
+  font-size: 14px;
+}
+.drag-help {
+  color: var(--theme-muted);
+  font-size: 13px;
+  line-height: 1.6;
 }
 .el-menu {
   flex: 1;
@@ -503,12 +705,13 @@ const logout = async () => {
 }
 @media (max-width: 640px) {
   .full-height {
-    height: auto;
-    min-height: 100vh;
+    height: 100dvh;
+    min-height: 0;
     flex-direction: column;
     padding: 10px;
     gap: 12px;
     .el-aside {
+      flex-shrink: 0;
       width: 100% !important;
       border-radius: 18px;
       &::before {
@@ -518,7 +721,7 @@ const logout = async () => {
     }
     > .el-container {
       border-radius: 18px;
-      min-height: 60vh;
+      min-height: 0;
     }
     .el-main {
       padding: 22px 18px;

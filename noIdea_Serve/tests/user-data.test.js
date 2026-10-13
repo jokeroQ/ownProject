@@ -92,6 +92,8 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
         ['PUT', `/menu/updateSubmenus/${bookmarkId}`, { title: 'attack', targetUrl: '/chat' }],
         ['DELETE', `/menu/deleteSubmenus/${bookmarkId}`],
         ['POST', '/menu/subMenus/swap', { firstId: aliceMenus[0].menuLists[0].id, secondId: bookmarkId }],
+        ['POST', '/menu/subMenus/move', { subMenuId: bookmarkId, menuId: aliceMenus[0].id }],
+        ['POST', '/menu/subMenus/move', { subMenuId: aliceMenus[0].menuLists[0].id, menuId }],
       ];
       for (const [method, route, body] of routes) assert.equal((await request(method, route, alice, body)).status, 404, route);
       assert.equal((await request('GET', '/menu/getMenus', bob)).body.data[0].title, bobMenus[0].title);
@@ -116,6 +118,33 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
       assert.equal((await request('DELETE', `/menu/deleteSubmenus/${bookmark.body.data.id}`, alice)).status, 200);
       assert.equal((await request('DELETE', `/menu/deletMenu/${menuId}`, alice)).status, 200);
       assert.equal(await MenuList.count({ where: { menu_id: menuId } }), 0);
+    });
+    await t.test('跨分类移动、插入排序、空分类及失败回滚', async () => {
+      const create = async title => (await request('POST', '/menu/addMenus', alice, { title })).body.data.id;
+      const source = await create('move-source'), target = await create('move-target');
+      const add = async (menuId, title) => (await request('POST', `/menu/addSubmenus/${menuId}`, alice, { title, targetUrl: '/chat', desc: 'preserved' })).body.data.id;
+      const first = await add(source, 'first'), second = await add(source, 'second'), third = await add(source, 'third');
+      const list = async menuId => (await request('GET', `/menu/getSubmenus/${menuId}`, alice)).body.data;
+      const move = (subMenuId, menuId, beforeId) => request('POST', '/menu/subMenus/move', alice, { subMenuId, menuId, beforeId });
+      assert.equal((await move(second, target)).status, 200);
+      assert.deepEqual((await list(source)).map(item => [item.id, item.order]), [[first, 1], [third, 2]]);
+      assert.equal((await list(target))[0].desc, 'preserved');
+      assert.equal((await move(first, target, second)).status, 200);
+      assert.deepEqual((await list(target)).map(item => [item.id, item.order]), [[first, 1], [second, 2]]);
+      assert.equal((await move(first, target)).status, 200);
+      assert.deepEqual((await list(target)).map(item => [item.id, item.order]), [[second, 1], [first, 2]]);
+      assert.equal((await move(first, target, third)).status, 404);
+      assert.deepEqual((await list(target)).map(item => item.id), [second, first]);
+      assert.equal((await move(first, target, first)).status, 200);
+      assert.equal((await move(first, 'bad')).status, 400);
+      const parallel = await Promise.all([move(second, source), move(first, source)]);
+      assert.ok(parallel.every(result => result.status === 200));
+      const concurrent = await list(source);
+      assert.equal(concurrent.length, 3);
+      assert.deepEqual(concurrent.map(item => item.order), [1, 2, 3]);
+      assert.equal((await request('POST', '/menu/subMenus/move', null, { subMenuId: first, menuId: target })).status, 401);
+      await request('DELETE', `/menu/deletMenu/${source}`, alice);
+      await request('DELETE', `/menu/deletMenu/${target}`, alice);
     });
     await t.test('修改 cara 后新用户仍获得原始默认模板', async () => {
       await request('PUT', '/menu/updateMenu/1', caraToken, { title: 'cara-personal-change' });

@@ -7,9 +7,11 @@
       @click="linkTo(i.targetUrl)"
       :title="i.desc || i.title"
       :draggable="editMode"
-      @dragstart="onDragStart($event, index)"
-      @dragover.prevent="onDragOver(index)"
-      @drop.stop="onDrop($event, i.id)"
+      @dragstart="onDragStart($event, i.id)"
+      @dragend="emit('drag-end')"
+      @dragover="onDragOver($event, index)"
+      @dragleave="hoverIndex = null"
+      @drop="onDrop($event, i.id)"
       @mouseenter="handleHover(index)"
       @mouseleave="handleHover(-1)"
       :class="{ hoverStyle: hoverIndex == index }"
@@ -62,21 +64,21 @@ import { computed, reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import type { Bookmark } from '@/utils/types';
 import { getErrorMessage } from '@/utils/errors';
-import {
-  swapSubItem,
-  addsubMenuItem,
-  deletesubMenuItem,
-  updatesubMenuItem,
-} from '@/api/menuApi/menu';
+import { addsubMenuItem, deletesubMenuItem, updatesubMenuItem } from '@/api/menuApi/menu';
 const props = defineProps<{
   editMode: boolean;
   activeLists: Bookmark[];
   activeTab: string;
+  dragging: boolean;
 }>();
 const router = useRouter();
 const currentIndex = ref<number | null>(null);
-const draggedItemIndex = ref<number | null>(null);
-const emit = defineEmits(['update-message']);
+const emit = defineEmits<{
+  'update-message': [];
+  'drag-start': [id: number];
+  'drag-end': [];
+  'drop-bookmark': [beforeId: number];
+}>();
 const dialogType = ref();
 const linkTo = (targetUrl: string) => {
   if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
@@ -102,9 +104,11 @@ const formData = reactive({
   id: '',
 });
 //拖拽事件
-const onDragStart = (event: DragEvent, index: number) => {
-  draggedItemIndex.value = index;
-  (event.dataTransfer as DataTransfer).effectAllowed = 'move';
+const onDragStart = (event: DragEvent, id: number) => {
+  if (!props.editMode || !event.dataTransfer) return;
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', String(id));
+  emit('drag-start', id);
 };
 
 const orderList = computed(() => {
@@ -112,26 +116,18 @@ const orderList = computed(() => {
 });
 
 //拖拽改动
-const onDrop = (_event: DragEvent, id: number) => {
-  if (draggedItemIndex.value !== null) {
-    swapSubItem({
-      firstId: id,
-      secondId: orderList.value[draggedItemIndex.value].id,
-    }).then((res) => {
-      if (res.status == 200) {
-        ElMessage({
-          message: '位置交换成功',
-          type: 'success',
-        });
-        emit('update-message');
-      }
-    });
-    draggedItemIndex.value = null;
-    hoverIndex.value = null;
-  }
+const onDrop = (event: DragEvent, id: number) => {
+  if (!props.editMode || !props.dragging) return;
+  event.preventDefault();
+  event.stopPropagation();
+  emit('drop-bookmark', id);
+  hoverIndex.value = null;
 };
 
-const onDragOver = (index: number) => {
+const onDragOver = (event: DragEvent, index: number) => {
+  if (!props.editMode || !props.dragging) return;
+  event.preventDefault();
+  if (event.dataTransfer) event.dataTransfer.dropEffect = 'move';
   hoverIndex.value = index;
 };
 

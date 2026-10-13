@@ -28,5 +28,6 @@ router.put('/updateSubmenus/:subMenuId', menuController.updateSubMenu);
 
 //更换子菜单的位置
 router.post('/subMenus/swap', menuController.swapMenuOrder);
+router.post('/subMenus/move', menuController.moveSubMenu);
 
 module.exports = router;
