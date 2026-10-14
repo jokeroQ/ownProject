@@ -3,7 +3,7 @@ const bcrypt = require('bcryptjs');
 const { User, Session, sequelize } = require('../models');
 const { copyDefaults } = require('../services/defaultBookmarks');
 const { hashToken } = require('../middleware/auth');
-const publicUser = user => ({ id: user.id, username: user.username, email: user.email });
+const publicUser = user => ({ id: user.id, username: user.username, email: user.email, role: user.role });
 
 exports.register = async (req, res, next) => {
   const { username, password, email } = req.body;

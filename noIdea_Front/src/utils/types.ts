@@ -8,6 +8,8 @@ export interface ApiResponse<T> {
 export type RecordId = number | string;
 
 export interface Bookmark {
+  is_locked: boolean;
+  can_edit: boolean;
   id: number;
   menu_id: number;
   order: number;
@@ -19,6 +21,9 @@ export interface Bookmark {
 }
 
 export interface Menu {
+  is_locked: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
   id: number;
   user_id: number;
   index: string;

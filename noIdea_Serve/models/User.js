@@ -2,6 +2,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db'); // 引入 Sequelize 连接实例
 const User = sequelize.define('User', {
+  role: { type: DataTypes.STRING(16), allowNull: false, defaultValue: 'user' },
   username: {
     type: DataTypes.STRING,
     allowNull: false,

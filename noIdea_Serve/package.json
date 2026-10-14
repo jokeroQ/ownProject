@@ -7,6 +7,7 @@
     "migrate:user-data": "node migrations/user-data.js",
     "migrate:themes": "node migrations/themes.js",
     "migrate:flowcharts": "node migrations/flowcharts.js",
+    "migrate:permissions": "node migrations/permissions.js",
     "dev": "nodemon app.js",
     "start": "node app.js"
   },

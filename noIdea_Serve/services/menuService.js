@@ -1,7 +1,12 @@
-const { Menu, MenuList, sequelize } = require('../models');
+const { User, Menu, MenuList, sequelize } = require('../models');
 const fail = (message, status = 400) => { const e = new Error(message); e.status = status; throw e; };
 const id = value => { const n = Number(value); if (!Number.isSafeInteger(n) || n <= 0) fail('无效的记录 ID'); return n; };
 const title = value => { if (typeof value !== 'string' || !value.trim() || value.length > 255) fail('名称不能为空且不能超过255字符'); return value.trim(); };
+const isAdmin = async (userId, transaction) => (await User.findByPk(userId, { transaction }))?.role === 'admin';
+const editable = async (record, userId, transaction) => {
+  if (record.is_locked && !await isAdmin(userId, transaction)) fail('该菜单为只读项，只能编辑自己新增的菜单', 403);
+};
+const publicBookmark = (bookmark, admin) => ({ ...bookmark.toJSON(), can_edit: admin || !bookmark.is_locked });
 const ownedMenu = async (menuId, userId, transaction, lock = false) => {
   const menu = await Menu.findOne({ where: { id: id(menuId), user_id: userId }, transaction,
     ...(lock ? { lock: transaction.LOCK.UPDATE } : {}) });
@@ -26,10 +31,16 @@ const bookmarkData = data => {
   result.type = result.targetUrl.startsWith('/') ? 'internal' : 'external';
   return result;
 };
-exports.getAllMenuItems = userId => Menu.findAll({
+exports.getAllMenuItems = async userId => {
+  const admin = await isAdmin(userId);
+  const menus = await Menu.findAll({
   where: { user_id: userId }, include: [{ model: MenuList, as: 'menuLists' }],
   order: [['id', 'ASC'], [{ model: MenuList, as: 'menuLists' }, 'order', 'ASC']],
-});
+  });
+  return menus.map(menu => ({ ...menu.toJSON(), can_edit: admin || !menu.is_locked,
+    can_delete: admin || (!menu.is_locked && !menu.menuLists.some(item => item.is_locked)),
+    menuLists: menu.menuLists.map(item => publicBookmark(item, admin)) }));
+};
 exports.createMenuItem = (value, userId) => sequelize.transaction(async transaction => {
   const menu = await Menu.create({ title: title(value), user_id: userId }, { transaction });
   await menu.update({ index: String(menu.id) }, { transaction });
@@ -37,17 +48,21 @@ exports.createMenuItem = (value, userId) => sequelize.transaction(async transact
 });
 exports.deleteMenuItem = (menuId, userId) => sequelize.transaction(async transaction => {
   const menu = await ownedMenu(menuId, userId, transaction, true);
+  await editable(menu, userId, transaction);
+  if (!await isAdmin(userId, transaction) && await MenuList.count({ where: { menu_id: menu.id, is_locked: true }, transaction })) fail('分类包含只读书签，不能删除', 403);
   // Delete children explicitly: the legacy SQL has RESTRICT as well as CASCADE constraints.
   await MenuList.destroy({ where: { menu_id: menu.id }, transaction });
   await menu.destroy({ transaction });
 });
 exports.updateMenuItem = (menuId, value, userId) => sequelize.transaction(async transaction => {
   const menu = await ownedMenu(menuId, userId, transaction, true);
+  await editable(menu, userId, transaction);
   return menu.update({ title: title(value) }, { transaction });
 });
 exports.getSubMenus = async (menuId, userId) => {
   await ownedMenu(menuId, userId);
-  return MenuList.findAll({ where: { menu_id: id(menuId) }, order: [['order', 'ASC']] });
+  const admin = await isAdmin(userId);
+  return (await MenuList.findAll({ where: { menu_id: id(menuId) }, order: [['order', 'ASC']] })).map(item => publicBookmark(item, admin));
 };
 exports.createSubMenu = (menuId, data, userId) => sequelize.transaction(async transaction => {
   const values = bookmarkData(data);
@@ -58,11 +73,13 @@ exports.createSubMenu = (menuId, data, userId) => sequelize.transaction(async tr
 exports.deleteSubMenu = (bookmarkId, userId) => sequelize.transaction(async transaction => {
   const bookmark = await ownedBookmark(bookmarkId, userId, transaction);
   await ownedMenu(bookmark.menu_id, userId, transaction, true);
+  await editable(bookmark, userId, transaction);
   await bookmark.destroy({ transaction });
 });
 exports.updateSubMenu = (bookmarkId, data, userId) => sequelize.transaction(async transaction => {
   const bookmark = await ownedBookmark(bookmarkId, userId, transaction);
   await ownedMenu(bookmark.menu_id, userId, transaction, true);
+  await editable(bookmark, userId, transaction);
   return bookmark.update(bookmarkData(data), { transaction });
 });
 exports.swapOrder = (firstId, secondId, userId) => sequelize.transaction(async transaction => {
@@ -70,6 +87,8 @@ exports.swapOrder = (firstId, secondId, userId) => sequelize.transaction(async t
   const second = await ownedBookmark(secondId, userId, transaction);
   if (first.menu_id !== second.menu_id) fail('只能在同一分类中排序');
   await ownedMenu(first.menu_id, userId, transaction, true);
+  await editable(first, userId, transaction);
+  await editable(second, userId, transaction);
   // Re-read after locking the parent so concurrent swaps cannot use stale orders.
   await first.reload({ transaction }); await second.reload({ transaction });
   const order = first.order;
@@ -86,6 +105,7 @@ exports.moveSubMenu = (bookmarkId, menuId, beforeId, userId) => sequelize.transa
     await ownedMenu(parentId, userId, transaction, true);
   }
   await bookmark.reload({ transaction, lock: transaction.LOCK.UPDATE, include: [] });
+  await editable(bookmark, userId, transaction);
   if (bookmark.menu_id !== sourceId) fail('书签已被移动，请刷新后重试', 409);
   const target = await MenuList.findAll({ where: { menu_id: targetId }, order: [['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
   const before = beforeId == null ? null : id(beforeId);

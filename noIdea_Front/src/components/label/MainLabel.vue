@@ -6,7 +6,7 @@
       class="box draggable-item"
       @click="linkTo(i.targetUrl)"
       :title="i.desc || i.title"
-      :draggable="editMode"
+      :draggable="editMode && i.can_edit"
       @dragstart="onDragStart($event, i.id)"
       @dragend="emit('drag-end')"
       @dragover="onDragOver($event, index)"
@@ -19,7 +19,7 @@
       <BookmarkIcon :icon="i.icon" :title="i.title" />
       <span class="bookmark-title">{{ i.title }}</span>
       <!--  -->
-      <div v-show="currentIndex == index && editMode" class="edit">
+      <div v-show="currentIndex == index && editMode && i.can_edit" class="edit">
         <i-ep-edit @click.stop="editDetail(i)"></i-ep-edit>
         <i-ep-delete @click.stop="deleteItem(i.id)"></i-ep-delete>
       </div>
@@ -107,6 +107,10 @@ const formData = reactive({
 });
 //拖拽事件
 const onDragStart = (event: DragEvent, id: number) => {
+  if (!props.activeLists.some((item) => item.id === id && item.can_edit)) {
+    event.preventDefault();
+    return;
+  }
   if (!props.editMode || !event.dataTransfer) return;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', String(id));
@@ -153,6 +157,7 @@ const handleHover = (index: number) => {
 
 //编辑书签
 const editDetail = (i: Bookmark) => {
+  if (!i.can_edit) return;
   dialogVisible.value = true;
   dialogType.value = 'update';
   formData.targetUrl = i.targetUrl;
@@ -164,6 +169,7 @@ const editDetail = (i: Bookmark) => {
 
 //删除书签
 const deleteItem = (id: number) => {
+  if (!props.activeLists.some((item) => item.id === id && item.can_edit)) return;
   deletesubMenuItem({
     subMenuId: id,
   })

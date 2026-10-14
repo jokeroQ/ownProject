@@ -2,6 +2,7 @@ const { DataTypes } = require('sequelize');
 const sequelize = require('../config/db'); // 引入 Sequelize 连接实例
 
 const MenuList = sequelize.define('MenuList', {
+  is_locked: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
   menu_id: {
     type: DataTypes.INTEGER,
     allowNull: false,

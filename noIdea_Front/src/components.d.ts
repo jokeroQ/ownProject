@@ -28,6 +28,7 @@ declare module 'vue' {
     IEpDownload: typeof import('~icons/ep/download')['default']
     IEpEdit: typeof import('~icons/ep/edit')['default']
     IEpFolderAdd: typeof import('~icons/ep/folder-add')['default']
+    IEpLock: typeof import('~icons/ep/lock')['default']
     IEpPlus: typeof import('~icons/ep/plus')['default']
     IEpQuestionFilled: typeof import('~icons/ep/question-filled')['default']
     IEpSetting: typeof import('~icons/ep/setting')['default']

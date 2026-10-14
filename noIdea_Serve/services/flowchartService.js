@@ -54,12 +54,12 @@ exports.installEntry = userId => sequelize.transaction(async transaction => {
     const menus = await Menu.findAll({ where: { user_id: userId }, order: [['id', 'ASC']], transaction });
     let menu = menus.find(item => item.title.startsWith('有趣功能点'));
     if (!menu) {
-      menu = await Menu.create({ title: '有趣功能点', user_id: userId }, { transaction });
+      menu = await Menu.create({ title: '有趣功能点', user_id: userId, is_locked: true }, { transaction });
       await menu.update({ index: String(menu.id) }, { transaction });
     }
     await menu.reload({ transaction, lock: transaction.LOCK.UPDATE });
     const last = await MenuList.findOne({ where: { menu_id: menu.id }, order: [['order', 'DESC']], transaction, lock: transaction.LOCK.UPDATE });
-    await MenuList.create({ menu_id: menu.id, title: '流程图', targetUrl: '/flowchart', type: 'internal', desc: '绘制并保存自己的流程图', order: last ? last.order + 1 : 1 }, { transaction });
+    await MenuList.create({ menu_id: menu.id, title: '流程图', targetUrl: '/flowchart', type: 'internal', desc: '绘制并保存自己的流程图', order: last ? last.order + 1 : 1, is_locked: true }, { transaction });
   }
   await chart.update({ entry_installed: true }, { transaction });
 });

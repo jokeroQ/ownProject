@@ -1,6 +1,6 @@
 const express = require('express');
 const cors = require('cors');
-const { sequelize, Menu, Session, BookmarkTemplate, UserTheme, UserFlowchart } = require('./models');
+const { sequelize, User, Menu, MenuList, Session, BookmarkTemplate, UserTheme, UserFlowchart } = require('./models');
 const { requireAuth } = require('./middleware/auth');
 const app = express();
 app.use(cors());
@@ -18,6 +18,11 @@ app.use((error, req, res, next) => {
 });
 async function start() {
   await sequelize.authenticate();
+  try {
+    await User.findOne({ attributes: ['id', 'role'] });
+    await Menu.findOne({ attributes: ['id', 'is_locked'] });
+    await MenuList.findOne({ attributes: ['id', 'is_locked'] });
+  } catch { throw new Error('权限字段未就绪，请执行 npm run migrate:permissions'); }
   // No sync({alter:true}): schema changes are explicit, reviewed migrations.
   await Menu.findOne({ attributes: ['id', 'user_id'] });
   await Session.findOne();

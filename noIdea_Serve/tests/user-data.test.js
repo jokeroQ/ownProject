@@ -31,9 +31,12 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     await t.test('缺少 cara 时不会改动表结构', async () => {
       await assert.rejects(migrate(), /找不到 cara/);
       assert.equal((await sequelize.getQueryInterface().describeTable('menus')).user_id, undefined);
+      assert.equal((await sequelize.getQueryInterface().describeTable('menus')).is_locked, undefined);
+      assert.equal((await sequelize.getQueryInterface().describeTable('users')).role, undefined);
     });
-    const cara = await User.create({ username: 'cara', email: 'cara-test@example.test', password: await bcrypt.hash(password, 10) });
+    await admin.query('INSERT INTO users (username,email,password,created_at) VALUES (?,?,?,NOW())', ['cara', 'cara-test@example.test', await bcrypt.hash(password, 10)]);
     await migrate();
+    const cara = await User.findOne({ where: { username: 'cara' } });
     await require('../migrations/themes')();
     await require('../migrations/flowcharts')();
     const snapshot = JSON.parse(JSON.stringify((await BookmarkTemplate.findByPk(1)).content));
@@ -41,6 +44,8 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
       const old = await Menu.findAll({ where: { user_id: cara.id }, order: [['id', 'ASC']] });
       assert.deepEqual(old.map(menu => menu.id), [1, 2, 3, 4, 5, 9]);
       assert.equal(await MenuList.count({ where: { menu_id: [1, 2, 3, 4, 5, 9] } }), 11);
+      assert.ok(old.every(menu => menu.is_locked));
+      assert.equal(await MenuList.count({ where: { is_locked: false } }), 0);
       const count = await Menu.count();
       await migrate();
       assert.equal(await Menu.count(), count);
@@ -98,6 +103,51 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
       ];
       for (const [method, route, body] of routes) assert.equal((await request(method, route, alice, body)).status, 404, route);
       assert.equal((await request('GET', '/menu/getMenus', bob)).body.data[0].title, bobMenus[0].title);
+    });
+    await t.test('普通用户默认菜单只读，管理员可管理自己全部菜单，不能跨用户', async () => {
+      assert.equal((await request('GET', '/users/me', caraToken)).body.user.role, 'admin');
+      assert.equal((await request('GET', '/users/me', alice)).body.user.role, 'user');
+      const menus = (await request('GET', '/menu/getMenus', alice)).body.data;
+      assert.ok(menus.every(menu => !menu.can_edit && !menu.can_delete && menu.menuLists.every(item => !item.can_edit)));
+      assert.ok((await request('GET', '/menu/getMenus', caraToken)).body.data.every(menu => menu.can_edit && menu.can_delete && menu.menuLists.every(item => item.can_edit)));
+      const menu = menus[0], bookmark = menu.menuLists[0];
+      const attempts = [
+        ['PUT', `/menu/updateMenu/${menu.id}`, { title: 'attack', role: 'admin', is_locked: false }],
+        ['DELETE', `/menu/deletMenu/${menu.id}`],
+        ['PUT', `/menu/updateSubmenus/${bookmark.id}`, { title: 'attack', targetUrl: '/chat', is_locked: false }],
+        ['DELETE', `/menu/deleteSubmenus/${bookmark.id}`],
+        ['POST', '/menu/subMenus/move', { subMenuId: bookmark.id, menuId: menus[1].id }],
+        ['POST', '/menu/subMenus/swap', { firstId: bookmark.id, secondId: menu.menuLists[1].id }],
+      ];
+      for (const [method, route, data] of attempts) assert.equal((await request(method, route, alice, data)).status, 403, route);
+      assert.equal((await request('PUT', `/menu/updateMenu/${menu.id}`, caraToken, { title: 'admin-attack' })).status, 404);
+      const forged = await request('POST', '/users/register', null, { username: 'forged-admin', email: 'forged@example.test', password, role: 'admin' });
+      assert.equal(forged.status, 201); assert.equal(forged.body.user.role, 'user');
+      const protectedMenu = await Menu.create({ title: 'admin-protected-test', user_id: cara.id, is_locked: true });
+      const protectedChild = await MenuList.create({ menu_id: protectedMenu.id, title: 'admin-child', targetUrl: '/chat', order: 1, is_locked: true });
+      assert.equal((await request('PUT', `/menu/updateSubmenus/${protectedChild.id}`, caraToken, { title: 'admin-edited', targetUrl: '/chat' })).status, 200);
+      assert.equal((await request('DELETE', `/menu/deletMenu/${protectedMenu.id}`, caraToken)).status, 200);
+      assert.equal(await MenuList.count({ where: { menu_id: protectedMenu.id } }), 0);
+    });
+    await t.test('只读分类允许新增个人书签，新增项可编辑移动，重复迁移不冻结新增项', async () => {
+      const parent = aliceMenus[0].id;
+      const created = await request('POST', `/menu/addSubmenus/${parent}`, alice, { title: 'my-new-bookmark', targetUrl: '/chat', is_locked: true });
+      assert.equal(created.status, 201); assert.equal(created.body.data.is_locked, false);
+      const bookmarkId = created.body.data.id;
+      const menu = await request('POST', '/menu/addMenus', alice, { title: 'my-new-menu', is_locked: true });
+      assert.equal(menu.body.data.is_locked, false);
+      await require('../migrations/permissions')();
+      assert.equal((await request('PUT', `/menu/updateSubmenus/${bookmarkId}`, alice, { title: 'edited', targetUrl: '/chat' })).status, 200);
+      assert.equal((await request('PUT', `/menu/updateMenu/${menu.body.data.id}`, alice, { title: 'edited-menu' })).status, 200);
+      assert.equal((await request('POST', '/menu/subMenus/move', alice, { subMenuId: bookmarkId, menuId: menu.body.data.id })).status, 200);
+      assert.equal((await request('POST', '/menu/subMenus/move', alice, { subMenuId: bookmarkId, menuId: parent, beforeId: aliceMenus[0].menuLists[0].id })).status, 200);
+      assert.equal((await request('DELETE', `/menu/deleteSubmenus/${bookmarkId}`, alice)).status, 200);
+      const locked = await MenuList.create({ menu_id: menu.body.data.id, title: 'protected-child', targetUrl: '/chat', order: 1, is_locked: true });
+      const record = (await request('GET', '/menu/getMenus', alice)).body.data.find(item => item.id === menu.body.data.id);
+      assert.equal(record.can_edit, true); assert.equal(record.can_delete, false);
+      assert.equal((await request('DELETE', `/menu/deletMenu/${record.id}`, alice)).status, 403);
+      await locked.destroy();
+      assert.equal((await request('DELETE', `/menu/deletMenu/${record.id}`, alice)).status, 200);
     });
     await t.test('个人分类和书签增改删、简介及同栏排序可用，伪造归属无效', async () => {
       const created = await request('POST', '/menu/addMenus', alice, { title: 'personal', user_id: cara.id });
@@ -163,21 +213,21 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
         assert.equal(await User.count({ where: { username: 'rollback-user' } }), 0);
       } finally { await BookmarkTemplate.update({ id: 1 }, { where: { id: 2 } }); }
     });
-    await t.test('流程图入口仅安装一次，移动删除后不重建，不修改默认模板', async () => {
-      const install = () => request('POST', '/flowchart/entry', alice, {});
+    await t.test('管理员流程图入口仅安装一次，移动删除后不重建，不修改默认模板', async () => {
+      const install = () => request('POST', '/flowchart/entry', caraToken, {});
       assert.ok((await Promise.all([install(), install()])).every(result => result.status === 200));
-      const menus = (await request('GET', '/menu/getMenus', alice)).body.data;
+      const menus = (await request('GET', '/menu/getMenus', caraToken)).body.data;
       const menu = menus.find(item => item.title.startsWith('有趣功能点'));
       const entries = menus.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart');
       assert.equal(entries.length, 1); assert.equal(entries[0].menu_id, menu.id);
       assert.equal((await request('GET', '/menu/getMenus', bob)).body.data.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart').length, 0);
       assert.deepEqual((await BookmarkTemplate.findByPk(1)).content, snapshot);
-      await request('POST', '/menu/subMenus/move', alice, { subMenuId: entries[0].id, menuId: menus[0].id });
+      await request('POST', '/menu/subMenus/move', caraToken, { subMenuId: entries[0].id, menuId: menus[0].id });
       await install();
-      assert.equal((await request('GET', '/menu/getMenus', alice)).body.data[0].menuLists.filter(item => item.targetUrl === '/flowchart').length, 1);
-      await request('DELETE', `/menu/deleteSubmenus/${entries[0].id}`, alice);
+      assert.equal((await request('GET', '/menu/getMenus', caraToken)).body.data[0].menuLists.filter(item => item.targetUrl === '/flowchart').length, 1);
+      await request('DELETE', `/menu/deleteSubmenus/${entries[0].id}`, caraToken);
       await install();
-      assert.equal((await request('GET', '/menu/getMenus', alice)).body.data.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart').length, 0);
+      assert.equal((await request('GET', '/menu/getMenus', caraToken)).body.data.flatMap(item => item.menuLists).filter(item => item.targetUrl === '/flowchart').length, 0);
     });
     await t.test('流程图数据库保存、版本冲突、并发保护、格式校验与账户隔离', async () => {
       const initial = (await request('GET', '/flowchart', alice)).body.data;

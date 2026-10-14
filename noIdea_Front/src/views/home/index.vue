@@ -14,9 +14,15 @@
             v-for="i in state.menus"
             :key="i.index"
             >{{ i.title }}
-            <div class="edit">
+            <i-ep-lock
+              v-if="!i.can_edit"
+              class="readonly-icon"
+              title="只读分类，可以在此新增自己的书签"
+            />
+            <div v-if="i.can_edit" class="edit">
               <i-ep-edit @click.stop="editDetail(i)"></i-ep-edit>
               <el-popconfirm
+                v-if="i.can_delete"
                 width="220"
                 confirm-button-text="确定"
                 cancel-button-text="取消"
@@ -66,7 +72,7 @@
         @dragleave="leaveContent"
       >
         <p v-if="editMode" class="drag-help">
-          拖到书签上可插到它前面；拖到分类名称或分区空白处可移到末尾。
+          可编辑自己新增的项目。拖到书签上可插到它前面；拖到分类名称或空白处可移到末尾。
         </p>
         <section
           v-for="menu in state.menus"
@@ -215,6 +221,8 @@ const onContentScroll = () => {
   });
 };
 const startDrag = (id: number) => {
+  if (!state.menus.some((menu) => menu.menuLists.some((item) => item.id === id && item.can_edit)))
+    return;
   draggedBookmark.value = id;
 };
 const stopDrag = () => {
@@ -374,6 +382,7 @@ const exitMode = () => {
 };
 //编辑左侧菜单标签
 const editDetail = (i: Menu) => {
+  if (!i.can_edit) return;
   mode.value = 'update';
   dialogVisible.value = true;
   labelName.value = i.title;
@@ -424,6 +433,7 @@ const editMenus = async () => {
 };
 //删除左侧菜单标签
 const deleteItem = async (index: string) => {
+  if (!state.menus.some((menu) => String(menu.id) === index && menu.can_delete)) return;
   try {
     const res = await deleteMenuItem({ id: index });
     if (res.status == 200) {
@@ -608,6 +618,12 @@ const logout = async () => {
     width: 15px;
     height: 15px;
   }
+}
+.readonly-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--theme-muted);
 }
 .btnGroup {
   display: flex;

@@ -1,6 +1,7 @@
 import type { AxiosInstance } from 'axios';
 
 export interface CurrentUser {
+  role: 'admin' | 'user';
   id: number;
   username: string;
   email: string;

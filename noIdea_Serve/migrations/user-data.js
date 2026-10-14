@@ -4,6 +4,7 @@ const { copyDefaults } = require('../services/defaultBookmarks');
 
 async function migrate() {
   await sequelize.authenticate();
+  await require('./permissions')();
   const cara = await User.findOne({ where: { username: 'cara' } });
   if (!cara) throw new Error('找不到 cara 账号；请先在旧版应用中注册 cara，再执行迁移。不会自动创建密码。');
   const qi = sequelize.getQueryInterface();
