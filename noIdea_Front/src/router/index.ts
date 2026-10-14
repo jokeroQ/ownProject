@@ -1,8 +1,8 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 
 import homeRoutes from './modules/home';
-import { getToken } from '@/utils/auth';
-import { getRequest } from '@/api/request';
+import { getToken, updateCurrentUser, type CurrentUser } from '@/utils/auth';
+import apiClient from '@/api/apiClient';
 
 const routes: Array<RouteRecordRaw> = [
   ...homeRoutes,
@@ -27,8 +27,11 @@ router.beforeEach(async (to) => {
   const needsCheck = to.meta.requiresAuth || (to.name === 'login' && getToken());
   let isLoggedIn = false;
   if (needsCheck && getToken()) {
+    const token = getToken()!;
     try {
-      await getRequest('/users/me');
+      const response = await apiClient.get<{ user: CurrentUser }>('/users/me');
+      if (token !== getToken()) return false;
+      updateCurrentUser(response.data.user, token);
       isLoggedIn = true;
     } catch {
       isLoggedIn = false;

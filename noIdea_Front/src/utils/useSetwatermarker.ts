@@ -1,46 +1,54 @@
-// useGlobalWatermark.js
-
 function createWatermark(text: string) {
   const canvas = document.createElement('canvas');
-  canvas.width = 200;
-  canvas.height = 150;
   const ctx = canvas.getContext('2d');
-
-  if (ctx) {
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.1)';
-    ctx.font = '16px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.translate(canvas.width / 2, canvas.height / 2);
-    ctx.rotate((-30 * Math.PI) / 180);
-    ctx.fillText(text, 0, 0);
-  }
-
-  return canvas.toDataURL('image/png');
+  if (!ctx) return null;
+  const font = '16px "Microsoft YaHei", sans-serif';
+  ctx.font = font;
+  const textWidth = ctx.measureText(text).width;
+  const width = Math.max(240, Math.ceil(textWidth * Math.cos(Math.PI / 6) + 70));
+  const height = Math.max(160, Math.ceil(textWidth / 2 + 70));
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+  ctx.scale(scale, scale);
+  ctx.font = font;
+  ctx.fillStyle = '#000';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.translate(width / 2, height / 2);
+  ctx.rotate(-Math.PI / 6);
+  ctx.fillText(text, 0, 0);
+  return { url: canvas.toDataURL('image/png'), width, height };
 }
 
-export function setGlobalWatermark(text = 'cara') {
-  const watermarkURL = createWatermark(text);
+export function removeGlobalWatermark() {
+  document.getElementById('global-watermark')?.remove();
+}
 
-  // 创建覆盖层
+export function setGlobalWatermark(username: string) {
+  const text = username.trim().slice(0, 100);
+  if (!text) {
+    removeGlobalWatermark();
+    return;
+  }
   let watermarkDiv = document.getElementById('global-watermark');
+  if (watermarkDiv?.dataset.username === text) return;
+  const watermark = createWatermark(text);
+  if (!watermark) {
+    removeGlobalWatermark();
+    return;
+  }
   if (!watermarkDiv) {
     watermarkDiv = document.createElement('div');
     watermarkDiv.id = 'global-watermark';
+    watermarkDiv.setAttribute('aria-hidden', 'true');
     document.body.appendChild(watermarkDiv);
   }
-
-  // 设置覆盖层样式
-  Object.assign(watermarkDiv.style, {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    pointerEvents: 'none', // 确保不阻挡用户的其他交互操作
-    backgroundImage: `url(${watermarkURL})`,
-    backgroundRepeat: 'repeat',
-    backgroundSize: '200px 150px',
-    zIndex: 9999, // 设置足够高的 z-index 保证水印在最上方
-  });
+  watermarkDiv.dataset.username = text;
+  const image = `url("${watermark.url}")`;
+  const size = `${watermark.width}px ${watermark.height}px`;
+  watermarkDiv.style.setProperty('mask-image', image);
+  watermarkDiv.style.setProperty('-webkit-mask-image', image);
+  watermarkDiv.style.setProperty('mask-size', size);
+  watermarkDiv.style.setProperty('-webkit-mask-size', size);
 }

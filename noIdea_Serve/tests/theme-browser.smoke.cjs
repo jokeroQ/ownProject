@@ -50,6 +50,19 @@ async function main() {
     assert.ok(ready, output);
     browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    const assertWatermark = async username => {
+      await page.waitForFunction(name => document.getElementById('global-watermark')?.dataset.username === name, username);
+      const style = await page.locator('#global-watermark').evaluate(element => {
+        const style = getComputedStyle(element);
+        return { mask: style.maskImage, color: style.backgroundColor, opacity: Number(style.opacity), events: style.pointerEvents,
+          width: element.clientWidth, height: element.clientHeight };
+      });
+      assert.ok(style.mask.startsWith('url("data:image/png;base64,'));
+      assert.ok(style.opacity >= 0.1 && style.opacity <= 0.2);
+      assert.equal(style.events, 'none');
+      assert.equal(style.width, 1280); assert.equal(style.height, 900);
+      return style;
+    };
     const login = async username => {
       await page.goto(url);
       await page.locator('input').nth(0).fill(username);
@@ -58,8 +71,15 @@ async function main() {
       await page.waitForURL(target => target.pathname === '/home');
       await page.getByRole('button', { name: '主题设置', exact: true }).waitFor();
       await page.locator('[data-section]').first().waitFor();
+      await assertWatermark(username);
     };
     await login('browser-alice');
+    const lightWatermark = await assertWatermark('browser-alice');
+    await page.evaluate(() => localStorage.setItem('user', '{broken-json'));
+    await page.reload();
+    await assertWatermark('browser-alice');
+    assert.equal(await page.evaluate(() => JSON.parse(localStorage.getItem('user')).username), 'browser-alice');
+    await page.locator('[data-section]').first().waitFor();
     // Continuous sections, click/scroll synchronization and real HTML drag-and-drop.
     const menuToken = await page.evaluate(() => localStorage.getItem('token'));
     const menuRequest = async (method, route, body) => {
@@ -263,6 +283,9 @@ async function main() {
     assert.equal((await getTheme()).mode, 'dark');
     await page.reload();
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark' && document.documentElement.dataset.hasBackground === 'true');
+    const darkWatermark = await assertWatermark('browser-alice');
+    assert.notEqual(darkWatermark.color, lightWatermark.color);
+    assert.equal(darkWatermark.color, 'rgb(226, 232, 240)');
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--el-color-primary').trim()), '#7c3aed');
     const sidebarStyle = await page.locator('.el-aside').evaluate(element => ({ color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor }));
     assert.equal(sidebarStyle.color, 'rgb(226, 232, 240)');
@@ -270,6 +293,7 @@ async function main() {
     assert.equal(await page.locator('.full-height').evaluate(element => Math.round(element.getBoundingClientRect().height)), 900);
     if (process.env.THEME_SCREENSHOT) await page.screenshot({ path: process.env.THEME_SCREENSHOT, fullPage: true });
     await page.goto(url + '/chat');
+    await assertWatermark('browser-alice');
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark' && document.documentElement.dataset.hasBackground === 'true');
     assert.equal(await page.getByRole('button', { name: '主题设置', exact: true }).count(), 0);
     await page.goto(url + '/signPad');
@@ -282,9 +306,12 @@ async function main() {
     await page.getByRole('button', { name: '退出登录', exact: true }).click();
     await page.getByRole('button', { name: '退出', exact: true }).click();
     await page.waitForURL(url + '/');
+    assert.equal(await page.locator('#global-watermark').count(), 0);
     assert.equal(await page.evaluate(() => document.documentElement.dataset.theme), 'light');
     assert.equal(await page.evaluate(() => document.documentElement.dataset.hasBackground), 'false');
     await login('browser-bob');
+    const bobWatermark = await assertWatermark('browser-bob');
+    assert.notEqual(bobWatermark.mask, lightWatermark.mask);
     await page.goto(url + '/flowchart');
     await page.locator('[data-node]').first().waitFor();
     assert.equal(await page.locator('[data-node]').count(), 4);
@@ -294,6 +321,7 @@ async function main() {
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'light');
     assert.equal(await page.evaluate(() => document.documentElement.dataset.hasBackground), 'false');
     console.log('PASS: 真实浏览器登录、主题保存、图片上传、刷新恢复、跨页面应用、退出清理和另一账号默认主题');
+    console.log('PASS: 动态用户名水印、损坏缓存后恢复、明暗主题及图片背景兼容、跨页面保留、退出清除与切换账号更新');
   } finally {
     if (browser) await browser.close();
     if (vite) { vite.kill(); await new Promise(resolve => vite.exitCode === null ? vite.once('exit', resolve) : resolve()); }

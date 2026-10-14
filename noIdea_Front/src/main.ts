@@ -6,7 +6,4 @@ import store from './store';
 import '@/assets/styles/index.css';
 import './style.css';
 import '@/assets/styles/global-theme.css';
-import { setGlobalWatermark } from './utils/useSetwatermarker';
 createApp(App).use(router).use(store).mount('#app');
-
-setGlobalWatermark('cara');

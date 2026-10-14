@@ -11,6 +11,34 @@ export interface LoginResponse {
   user: CurrentUser;
 }
 export const getToken = () => localStorage.getItem('token');
+export function getCurrentUser(): CurrentUser | null {
+  if (!getToken()) return null;
+  try {
+    const user: unknown = JSON.parse(localStorage.getItem('user') || 'null');
+    if (
+      user &&
+      typeof user === 'object' &&
+      'id' in user &&
+      Number.isSafeInteger(user.id) &&
+      'username' in user &&
+      typeof user.username === 'string' &&
+      user.username.trim() &&
+      'email' in user &&
+      typeof user.email === 'string'
+    )
+      return user as CurrentUser;
+  } catch {
+    /* The authenticated profile request repairs a missing or invalid cache. */
+  }
+  return null;
+}
+export function updateCurrentUser(user: CurrentUser, token: string) {
+  if (getToken() !== token) return;
+  const value = JSON.stringify(user);
+  if (localStorage.getItem('user') === value) return;
+  localStorage.setItem('user', value);
+  window.dispatchEvent(new Event('user-changed'));
+}
 export function saveLogin(response: LoginResponse) {
   localStorage.setItem('token', response.token);
   localStorage.setItem('user', JSON.stringify(response.user));

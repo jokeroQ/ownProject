@@ -172,7 +172,18 @@ html .el-message-box__content {
   border-radius: 10px;
 }
 #global-watermark {
-  opacity: 0.25;
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  user-select: none;
+  background-color: var(--theme-text);
+  mask-repeat: repeat;
+  -webkit-mask-repeat: repeat;
+  opacity: 0.12;
+}
+html[data-theme='dark'] #global-watermark {
+  opacity: 0.15;
 }
 @media (prefers-reduced-motion: reduce) {
   *,
