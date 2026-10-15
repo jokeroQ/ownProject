@@ -59,7 +59,13 @@
           </template>
         </el-input>
 
-        <el-button type="danger" plain @click="logout"> 退出登录 </el-button>
+        <div class="user-actions">
+          <div v-if="currentUser" class="current-user" :title="currentUser.username">
+            <el-icon class="current-user-icon" aria-hidden="true"><User /></el-icon>
+            <span class="current-user-name">{{ currentUser.username }}</span>
+          </div>
+          <el-button type="danger" plain @click="logout"> 退出登录 </el-button>
+        </div>
       </el-header>
       <main
         ref="contentRoot"
@@ -137,12 +143,12 @@ import MainLabel from '@/components/label/MainLabel.vue';
 import ThemeSettings from '@/components/theme/ThemeSettings.vue';
 import { getMotto } from '@views/home/home';
 import { deleteMenuItem, moveSubItem } from '@/api/menuApi/menu';
-import { Search } from '@element-plus/icons-vue';
-import { reactive, ref, watch, nextTick, onBeforeUnmount } from 'vue';
+import { Search, User } from '@element-plus/icons-vue';
+import { reactive, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { postRequest, getRequest, putRequest } from '../../utils/httpService';
 import { useRouter, useRoute } from 'vue-router';
-import { clearLogin } from '@/utils/auth';
+import { clearLogin, getCurrentUser } from '@/utils/auth';
 import type { Menu } from '@/utils/types';
 import { getErrorMessage } from '@/utils/errors';
 import 'element-plus/es/components/message/style/css';
@@ -150,6 +156,10 @@ import 'element-plus/es/components/message-box/style/css';
 // const state = reactive({
 //   menuList: menuList,
 // });
+const currentUser = ref(getCurrentUser());
+const syncCurrentUser = () => {
+  currentUser.value = getCurrentUser();
+};
 const searchValue = ref<string>('');
 const route = useRoute();
 const activeTab = ref<string>(typeof route.query.category === 'string' ? route.query.category : '');
@@ -283,6 +293,9 @@ const leaveContent = (event: DragEvent) => {
 onBeforeUnmount(() => {
   stopDrag();
   cancelAnimationFrame(scrollFrame);
+  window.removeEventListener('user-changed', syncCurrentUser);
+  window.removeEventListener('auth-changed', syncCurrentUser);
+  window.removeEventListener('storage', syncCurrentUser);
 });
 const syncCategoryUrl = (category: string) => {
   if (route.name !== 'home' || route.query.category === (category || undefined)) return;
@@ -322,6 +335,10 @@ watch(
   },
 );
 onMounted(async () => {
+  syncCurrentUser();
+  window.addEventListener('user-changed', syncCurrentUser);
+  window.addEventListener('auth-changed', syncCurrentUser);
+  window.addEventListener('storage', syncCurrentUser);
   try {
     await postRequest('/flowchart/entry', {});
   } catch (error) {
@@ -663,6 +680,7 @@ const logout = async () => {
     font-weight: 550;
   }
   > .el-input {
+    min-width: 0;
     width: min(460px, 58%);
     :deep(.el-input__wrapper) {
       height: 42px;
@@ -680,7 +698,35 @@ const logout = async () => {
       color: var(--theme-muted);
     }
   }
-  > .el-button {
+  .user-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+    max-width: min(280px, 42%);
+    margin-left: auto;
+    flex-shrink: 0;
+  }
+  .current-user {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    color: var(--theme-text);
+    font-size: 13px;
+  }
+  .current-user-icon {
+    flex-shrink: 0;
+    color: var(--theme-muted);
+    font-size: 16px;
+  }
+  .current-user-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .user-actions > .el-button {
     --el-button-bg-color: transparent;
     --el-button-border-color: var(--el-border-color-lighter);
     --el-button-text-color: var(--theme-muted);
@@ -787,9 +833,20 @@ const logout = async () => {
     gap: 26px;
   }
   .header {
-    height: 72px;
-    padding: 0 18px;
-    gap: 12px;
+    height: auto;
+    min-height: 112px;
+    padding: 12px 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+    .user-actions {
+      order: -1;
+      width: 100%;
+      max-width: none;
+    }
+    > .el-input {
+      flex: 0 0 100%;
+      width: 100%;
+    }
   }
   .bottom {
     padding-right: 100px;
