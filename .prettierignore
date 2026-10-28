@@ -8,3 +8,6 @@
 **/*.sql
 **/output.css
 **/uploads/**
+# Keep the downloaded map source byte-for-byte for provenance checks.
+**/assets/maps/china.json
+**/assets/maps/provinces/[0-9]*.json

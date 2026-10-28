@@ -2,6 +2,10 @@ const { sequelize, UserTheme } = require('../models');
 async function migrateThemes() {
   await sequelize.authenticate();
   await UserTheme.sync();
+  const qi = sequelize.getQueryInterface();
+  if (!(await qi.describeTable('user_themes')).color_cards) {
+    await qi.addColumn('user_themes', 'color_cards', { type: require('sequelize').DataTypes.JSON, allowNull: true });
+  }
   console.log('主题迁移完成：user_themes 已就绪，现有用户默认使用浅色主题。');
 }
 if (require.main === module) migrateThemes().catch(error => {

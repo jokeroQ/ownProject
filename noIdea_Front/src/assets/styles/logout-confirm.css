@@ -1,0 +1,11 @@
+/* Confirmation geometry is shared in overlays.css; logout keeps its danger action. */
+.logout-confirm-dialog .logout-confirm-button {
+  --el-button-text-color: #fff;
+  --el-button-bg-color: var(--el-color-danger);
+  --el-button-border-color: var(--el-color-danger);
+  --el-button-hover-text-color: #fff;
+  --el-button-hover-bg-color: var(--el-color-danger-light-3);
+  --el-button-hover-border-color: var(--el-color-danger-light-3);
+  --el-button-active-bg-color: var(--el-color-danger-dark-2);
+  --el-button-active-border-color: var(--el-color-danger-dark-2);
+}

@@ -1,12 +1,20 @@
 <!doctype html>
-<html lang="en" >
+<html lang="en">
   <!-- data-theme="default" -->
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/x-icon" href="%BASE_URL%favicon.ico?v=1" sizes="16x16 32x32 48x48 64x64 128x128 256x256" />
+    <link
+      rel="icon"
+      type="image/x-icon"
+      href="%BASE_URL%favicon.ico?v=1"
+      sizes="16x16 32x32 48x48 64x64 128x128 256x256"
+    />
     <link rel="icon" type="image/png" href="%BASE_URL%favicon.png?v=1" sizes="192x192" />
-    <link href="/src/output.css" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="/src/output.css" rel="stylesheet" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content"
+    />
     <title>Vite + Vue + TS</title>
   </head>
   <body>
@@ -19,5 +27,4 @@
   // 获取初始主题并应用
   const initialTheme = store.getters.currentTheme;
   document.documentElement.setAttribute('data-theme', initialTheme);
-  
 </script>

@@ -11,7 +11,7 @@ const filePath = file => {
   return path.join(storageRoot(), file);
 };
 const serialize = theme => theme ? ({ mode: theme.mode, primaryColor: theme.primary_color,
-  overlay: theme.overlay, hasBackground: Boolean(theme.background_file) }) : { ...DEFAULTS };
+  overlay: theme.overlay, hasBackground: Boolean(theme.background_file), colorCards: theme.color_cards || [] }) : { ...DEFAULTS, colorCards: [] };
 const removeFile = async file => {
   if (!file) return;
   try { await fs.unlink(filePath(file)); }
@@ -26,18 +26,28 @@ async function change(userId, operation) {
   });
 }
 exports.get = async userId => serialize(await UserTheme.findByPk(userId));
-exports.update = async (userId, values) => {
+const themeValues = values => {
   if (!values || !['light', 'dark'].includes(values.mode) ||
       typeof values.primaryColor !== 'string' || !/^#[a-fA-F0-9]{6}$/.test(values.primaryColor) ||
       typeof values.overlay !== 'number' || !Number.isFinite(values.overlay) || values.overlay < 0 || values.overlay > 0.85) {
     throw error('请选择有效主题、颜色和遮罩透明度（0–0.85）');
   }
-  return change(userId, async (theme, transaction) => {
-    await theme.update({ mode: values.mode, primary_color: values.primaryColor.toLowerCase(), overlay: values.overlay }, { transaction });
-    return serialize(theme);
-  });
+  return { mode: values.mode, primary_color: values.primaryColor.toLowerCase(), overlay: values.overlay,
+    ...(values.colorCards === undefined ? {} : { color_cards: require('./colorCards').validateColorCards(values.colorCards) }) };
 };
-exports.upload = async (userId, buffer) => {
+exports.update = async (userId, values) => {
+  const settings = themeValues(values);
+  if (values.removeBackground !== undefined && typeof values.removeBackground !== 'boolean') throw error('移除背景参数不正确');
+  const result = await change(userId, async (theme, transaction) => {
+    const oldFile = values.removeBackground ? theme.background_file : null;
+    await theme.update({ ...settings, ...(values.removeBackground ? { background_file: null } : {}) }, { transaction });
+    return { oldFile, theme: serialize(theme) };
+  });
+  await removeFile(result.oldFile);
+  return result.theme;
+};
+exports.upload = async (userId, buffer, values) => {
+  const settings = values === undefined ? {} : themeValues(values);
   if (!Buffer.isBuffer(buffer) || !buffer.length) throw error('请上传 JPEG、PNG 或 WebP 图片');
   if (buffer.length > 5 * 1024 * 1024) throw error('图片不能超过5MB', 413);
   let output;
@@ -55,7 +65,7 @@ exports.upload = async (userId, buffer) => {
   try {
     result = await change(userId, async (theme, transaction) => {
       const oldFile = theme.background_file;
-      await theme.update({ background_file: file }, { transaction });
+      await theme.update({ ...settings, background_file: file }, { transaction });
       return { oldFile, theme: serialize(theme) };
     });
   } catch (err) { await removeFile(file); throw err; }
@@ -72,7 +82,7 @@ exports.removeBackground = async (userId, reset = false) => {
   const result = await change(userId, async (theme, transaction) => {
     const oldFile = theme.background_file;
     await theme.update({ background_file: null,
-      ...(reset ? { mode: DEFAULTS.mode, primary_color: DEFAULTS.primaryColor, overlay: DEFAULTS.overlay } : {}),
+      ...(reset ? { mode: DEFAULTS.mode, primary_color: DEFAULTS.primaryColor, overlay: DEFAULTS.overlay, color_cards: null } : {}),
     }, { transaction });
     return { oldFile, theme: serialize(theme) };
   });

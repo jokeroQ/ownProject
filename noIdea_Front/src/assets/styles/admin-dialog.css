@@ -1,0 +1,345 @@
+.el-dialog.admin-user-dialog {
+  padding: 24px;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__header {
+  padding: 0 40px 20px 0;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__title {
+  color: var(--theme-text);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 24px;
+  letter-spacing: 0;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__headerbtn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 8px;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__headerbtn:hover,
+.el-dialog.admin-user-dialog .el-dialog__headerbtn:focus-visible {
+  background: var(--el-fill-color-light);
+}
+
+.el-dialog.admin-user-dialog .el-dialog__headerbtn:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 2px;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__body {
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__footer {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 0;
+  padding: 16px 0 0;
+  border-top: 0;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__footer .dialog-footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.el-dialog.admin-user-dialog .el-dialog__footer .el-button {
+  min-width: 72px;
+  height: var(--app-button-height);
+  margin: 0;
+  padding: 0 var(--app-button-padding);
+  border-radius: 8px;
+  font-weight: 500;
+}
+
+.el-dialog.admin-user-dialog .admin-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 18px;
+  min-width: 0;
+  margin: 0;
+}
+
+.el-dialog.admin-user-dialog .el-form-item {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  min-width: 0;
+  margin-bottom: 0;
+}
+
+.el-dialog.admin-user-dialog .el-form-item__label {
+  display: inline-flex;
+  flex-shrink: 0;
+  justify-content: flex-end;
+  height: 40px;
+  margin: 0;
+  padding: 0 12px 0 0;
+  color: var(--theme-text);
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 40px;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.el-dialog.admin-user-dialog .el-form-item__content {
+  min-width: 0;
+  align-items: flex-start;
+  line-height: normal;
+}
+
+.el-dialog.admin-user-dialog .el-form-item .el-input {
+  --el-input-height: 40px;
+  width: 100%;
+  min-width: 0;
+  font-size: 14px;
+}
+
+.el-dialog.admin-user-dialog .el-form-item .el-input__wrapper,
+.el-dialog.admin-user-dialog .el-form-item .el-select__wrapper {
+  box-sizing: border-box;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 12px;
+  border-radius: 8px;
+}
+
+.el-dialog.admin-user-dialog .el-form-item .el-input__inner,
+.el-dialog.admin-user-dialog .el-form-item .el-select__wrapper {
+  color: var(--theme-text);
+  font-size: 14px;
+}
+
+.el-dialog.admin-user-dialog .el-form-item .el-select {
+  width: 100%;
+  min-width: 0;
+}
+
+.el-dialog.admin-user-dialog .el-form-item__content .field-hint {
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.el-dialog.admin-user-dialog .dialog-subject {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  max-width: 100%;
+  padding: 12px;
+  border: 1px solid var(--el-border-color-lighter);
+  border-radius: 10px;
+  background: var(--el-fill-color-lighter);
+}
+
+.el-dialog.admin-user-dialog .dialog-subject > .user-avatar,
+.el-dialog.admin-user-dialog .dialog-subject > .dialog-subject-avatar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  color: var(--ui-accent-text, var(--el-color-primary));
+  background: var(--el-color-primary-light-9);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.el-dialog.admin-user-dialog .dialog-subject-info {
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.el-dialog.admin-user-dialog .dialog-subject-info strong {
+  display: -webkit-box;
+  max-width: 100%;
+  max-height: 3em;
+  overflow: hidden;
+  color: var(--theme-text);
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.el-dialog.admin-user-dialog .dialog-subject-info > span {
+  display: block;
+  margin-top: 4px;
+  color: var(--theme-muted);
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.el-dialog.admin-user-dialog .password-rules {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+  padding: 12px;
+  border-radius: 10px;
+  color: var(--theme-muted);
+  background: var(--el-fill-color-light);
+  font-size: 13px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.el-dialog.admin-user-dialog .password-rules p {
+  margin: 0;
+}
+
+.el-dialog.admin-user-dialog .password-length {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+  color: var(--theme-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  white-space: nowrap;
+}
+
+.el-dialog.admin-user-dialog .password-length.is-error,
+.el-dialog.admin-user-dialog .password-length.form-error,
+.el-dialog.admin-user-dialog .password-length .is-error,
+.el-dialog.admin-user-dialog .password-length .form-error {
+  color: var(--el-color-danger);
+}
+
+.el-dialog.admin-user-dialog .form-hint {
+  margin: 0;
+  color: var(--theme-muted);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.el-dialog.admin-user-dialog .form-error {
+  margin: 0;
+  color: var(--el-color-danger);
+  font-size: 12px;
+  line-height: 1.7;
+  overflow-wrap: anywhere;
+}
+
+.admin-role-dropdown.el-select__popper.el-popper {
+  border: 1px solid var(--el-border-color-light);
+  border-radius: 10px;
+  color: var(--theme-text);
+  background: var(--el-bg-color-overlay);
+  box-shadow: var(--el-box-shadow-light);
+}
+
+.admin-role-dropdown.el-select__popper .el-popper__arrow::before {
+  background: var(--el-bg-color-overlay);
+}
+
+.admin-role-dropdown.el-select__popper .el-select-dropdown__list {
+  padding: 6px 0;
+}
+
+.admin-role-dropdown.el-select__popper .el-select-dropdown__item {
+  height: 36px;
+  padding: 0 12px;
+  color: var(--theme-text);
+  font-size: 14px;
+  line-height: 36px;
+}
+
+.admin-role-dropdown.el-select__popper .el-select-dropdown__item.is-hovering:not(.is-disabled),
+.admin-role-dropdown.el-select__popper .el-select-dropdown__item:hover:not(.is-disabled) {
+  background: var(--el-fill-color-light);
+}
+
+.admin-role-dropdown.el-select__popper .el-select-dropdown__item.is-selected:not(.is-disabled) {
+  color: var(--ui-accent-text, var(--el-color-primary));
+  background: var(--el-color-primary-light-9);
+  font-weight: 600;
+}
+
+.admin-role-dropdown.el-select__popper .el-select-dropdown__item.is-disabled {
+  color: var(--el-text-color-placeholder);
+  background: var(--el-fill-color-lighter);
+  font-weight: 400;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .el-dialog.admin-user-dialog {
+    padding: 20px;
+  }
+
+  .el-dialog.admin-user-dialog .el-dialog__headerbtn {
+    top: 16px;
+    right: 16px;
+  }
+
+  .el-dialog.admin-user-dialog .el-form-item__label {
+    font-size: 13px;
+  }
+
+  .el-dialog.admin-user-dialog .el-form-item .el-input,
+  .el-dialog.admin-user-dialog .el-form-item .el-input__inner,
+  .el-dialog.admin-user-dialog .el-form-item .el-select__wrapper,
+  .admin-role-dropdown.el-select__popper .el-select-dropdown__item {
+    font-size: 16px;
+  }
+}
+
+@media (max-height: 450px) {
+  .el-dialog.admin-user-dialog {
+    padding: 18px;
+  }
+
+  .el-dialog.admin-user-dialog .el-dialog__headerbtn {
+    top: 14px;
+    right: 14px;
+  }
+
+  .el-dialog.admin-user-dialog .el-dialog__header {
+    padding-bottom: 12px;
+  }
+
+  .el-dialog.admin-user-dialog .el-dialog__footer {
+    margin-top: 0;
+    padding-top: 12px;
+  }
+
+  .el-dialog.admin-user-dialog .admin-form {
+    gap: 14px;
+  }
+
+  .el-dialog.admin-user-dialog .dialog-subject,
+  .el-dialog.admin-user-dialog .password-rules {
+    padding: 10px;
+  }
+}

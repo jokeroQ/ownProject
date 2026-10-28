@@ -4,9 +4,15 @@
       v-for="(i, index) in orderList"
       :key="i.id"
       class="box draggable-item"
-      @click="linkTo(i.targetUrl)"
+      @click="clickCard(i)"
+      @keydown.enter.self.prevent="clickCard(i)"
+      @keydown.space.self.prevent="clickCard(i)"
+      :tabindex="editMode && i.can_edit ? 0 : undefined"
+      :role="editMode && i.can_edit ? 'button' : undefined"
+      :aria-label="editMode && i.can_edit ? `选择${i.title}` : undefined"
+      :aria-pressed="editMode && i.can_edit ? !!selectedIds?.includes(i.id) : undefined"
       :title="i.desc || i.title"
-      :draggable="editMode && i.can_edit"
+      :draggable="editMode && i.can_edit && !selectionBusy"
       @dragstart="onDragStart($event, i.id)"
       @dragend="emit('drag-end')"
       @dragover="onDragOver($event, index)"
@@ -14,73 +20,141 @@
       @drop="onDrop($event, i.id)"
       @mouseenter="handleHover(index)"
       @mouseleave="handleHover(-1)"
-      :class="{ hoverStyle: hoverIndex == index }"
+      :data-bookmark-id="i.id"
+      :class="{
+        hoverStyle: dragging && !selectedIds?.includes(i.id) && hoverIndex === index,
+        'is-editable': editMode && i.can_edit,
+        'is-selected': editMode && selectedIds?.includes(i.id),
+        'is-dragging': dragging && draggedIds?.includes(i.id),
+      }"
     >
       <BookmarkIcon :icon="i.icon" :title="i.title" />
       <span class="bookmark-title">{{ i.title }}</span>
       <!--  -->
-      <div v-show="currentIndex == index && editMode && i.can_edit" class="edit">
-        <i-ep-edit @click.stop="editDetail(i)"></i-ep-edit>
-        <i-ep-delete @click.stop="deleteItem(i.id)"></i-ep-delete>
+      <div v-show="editMode && i.can_edit" class="edit">
+        <button
+          class="app-icon-button"
+          type="button"
+          aria-label="编辑书签"
+          :disabled="selectionBusy"
+          title="编辑书签"
+          @click.stop="editDetail(i)"
+        >
+          <i-ep-edit />
+        </button>
+        <button
+          class="app-icon-button"
+          type="button"
+          aria-label="删除书签"
+          :disabled="selectionBusy"
+          title="删除书签"
+          @click.stop="deleteItem(i.id)"
+        >
+          <i-ep-delete />
+        </button>
       </div>
     </el-card>
-    <el-card v-if="editMode" class="box lastBox" @click="showAdd">
+    <el-card
+      v-if="editMode"
+      class="box lastBox"
+      :data-home-add-bookmark="activeTab"
+      @click="showAdd"
+    >
       <i-ep-plus></i-ep-plus>
     </el-card>
     <el-dialog
       v-model="dialogVisible"
+      class="bookmark-edit-dialog"
       :title="dialogType == 'add' ? '添加标签' : '编辑标签'"
       width="500"
     >
-      <el-form>
-        <el-form-item>
-          <el-input placeholder="请输入目标网址" v-model="formData.targetUrl" />
+      <el-form label-width="72px" label-position="left">
+        <el-form-item label="目标网址">
+          <el-input
+            placeholder="请输入目标网址"
+            aria-label="目标网址"
+            v-model="formData.targetUrl"
+          />
         </el-form-item>
-        <el-form-item>
-          <el-input placeholder="请输入书签名称" v-model="formData.title" />
+        <el-form-item label="书签名称">
+          <el-input
+            placeholder="请输入书签名称"
+            aria-label="书签名称"
+            v-model="formData.title"
+            maxlength="255"
+          />
         </el-form-item>
-        <el-form-item>
-          <el-input placeholder="请输入图标地址" v-model="formData.icon" />
+        <el-form-item label="图标">
+          <el-input
+            placeholder="请输入图标地址或名称首字"
+            aria-label="图标地址或名称首字"
+            v-model="formData.icon"
+            maxlength="255"
+          />
         </el-form-item>
-        <el-form-item>
+        <el-form-item label="简介">
           <el-input placeholder="请输入网址简介" v-model="formData.desc" />
         </el-form-item>
         <div class="autoBtn">
-          <el-button>自动获取网站名称</el-button>
-          <el-button>自动获取图标地址</el-button>
+          <el-button data-bookmark-auto-title :loading="titleLoading" @click="autoTitle"
+            >自动获取网站名称</el-button
+          >
+          <el-button data-bookmark-auto-icon :loading="iconLoading" @click="autoIcon"
+            >自动获取图标地址</el-button
+          >
           <BookmarkIcon :icon="formData.icon" :title="formData.title" />
         </div>
+        <p class="metadata-hint">
+          站内页面读取路由标题，图标使用名称首字；网站图标无法加载时也会显示首字。
+        </p>
       </el-form>
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="confirmLabel"> 确认 </el-button>
           <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" :disabled="titleLoading || iconLoading" @click="confirmLabel">
+            确认
+          </el-button>
         </div>
       </template>
     </el-dialog>
   </div>
 </template>
 <script lang="ts" setup>
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
+import { ElMessageBox } from 'element-plus';
 import BookmarkIcon from './BookmarkIcon.vue';
 import { useRouter } from 'vue-router';
 import type { Bookmark } from '@/utils/types';
 import { getErrorMessage } from '@/utils/errors';
 import { addsubMenuItem, deletesubMenuItem, updatesubMenuItem } from '@/api/menuApi/menu';
+import { fetchWebsiteMetadata, type WebsiteMetadata } from '@/api/bookmarkMetadata';
+import { bookmarkInitial, resolveBookmarkTarget } from '@/utils/bookmarkMetadata';
 const props = defineProps<{
   editMode: boolean;
   activeLists: Bookmark[];
   activeTab: string;
   dragging: boolean;
+  draggedIds?: number[];
+  selectedIds?: number[];
+  selectionBusy?: boolean;
 }>();
 const router = useRouter();
 const currentIndex = ref<number | null>(null);
 const emit = defineEmits<{
   'update-message': [];
-  'drag-start': [id: number];
+  'drag-start': [id: number, event: DragEvent];
   'drag-end': [];
   'drop-bookmark': [beforeId: number];
+  'toggle-selection': [id: number];
 }>();
+function clickCard(item: Bookmark) {
+  if (props.selectionBusy) return;
+  if (props.editMode) {
+    if (item.can_edit) emit('toggle-selection', item.id);
+    return;
+  }
+  linkTo(item.targetUrl);
+}
 const dialogType = ref();
 const linkTo = (targetUrl: string) => {
   if (targetUrl.startsWith('/') && !targetUrl.startsWith('//')) {
@@ -105,8 +179,99 @@ const formData = reactive({
   desc: '',
   id: '',
 });
+const titleLoading = ref(false);
+const iconLoading = ref(false);
+let lookupVersion = 0;
+let metadataTask: {
+  url: string;
+  controller: AbortController;
+  promise: Promise<WebsiteMetadata>;
+} | null = null;
+const cancelLookup = () => {
+  lookupVersion++;
+  metadataTask?.controller.abort();
+  metadataTask = null;
+  titleLoading.value = false;
+  iconLoading.value = false;
+};
+watch([dialogVisible, () => formData.targetUrl, () => formData.id], cancelLookup, {
+  flush: 'sync',
+});
+onBeforeUnmount(cancelLookup);
+const websiteMetadata = (url: string) => {
+  if (metadataTask?.url === url) return metadataTask.promise;
+  const controller = new AbortController();
+  const promise = fetchWebsiteMetadata(url, controller.signal);
+  const task = { url, controller, promise };
+  metadataTask = task;
+  void promise.catch(() => {
+    if (metadataTask === task) metadataTask = null;
+  });
+  return promise;
+};
+const autoTitle = async () => {
+  if (titleLoading.value) return;
+  const version = lookupVersion;
+  const previous = formData.title;
+  titleLoading.value = true;
+  try {
+    const target = resolveBookmarkTarget(formData.targetUrl, router, window.location.origin);
+    const title = target.internal ? target.title : (await websiteMetadata(target.url)).title;
+    if (version !== lookupVersion || !dialogVisible.value || formData.title !== previous) return;
+    if (!title) {
+      ElMessage.warning(
+        target.internal
+          ? '未找到已注册的路由名称，请手动填写名称'
+          : '网站未提供名称或限制访问，请手动填写名称',
+      );
+      return;
+    }
+    formData.title = title.slice(0, 255).replace(/[\uD800-\uDBFF]$/, '');
+    ElMessage.success('名称已获取');
+  } catch (error) {
+    if (version === lookupVersion && dialogVisible.value)
+      ElMessage.warning(getErrorMessage(error, '获取名称失败，请手动填写'));
+  } finally {
+    if (version === lookupVersion) titleLoading.value = false;
+  }
+};
+const autoIcon = async () => {
+  if (iconLoading.value) return;
+  const version = lookupVersion;
+  const previous = formData.icon;
+  iconLoading.value = true;
+  try {
+    const target = resolveBookmarkTarget(formData.targetUrl, router, window.location.origin);
+    let icon: string;
+    if (target.internal) {
+      const name = formData.title.trim() || target.title;
+      if (!name) {
+        ElMessage.warning('请先填写名称，或输入已注册的站内路由');
+        return;
+      }
+      icon = bookmarkInitial(name);
+    } else {
+      const metadata = await websiteMetadata(target.url);
+      icon =
+        metadata.icon ||
+        bookmarkInitial(formData.title || metadata.title || new URL(target.url).hostname);
+    }
+    if (version !== lookupVersion || !dialogVisible.value || formData.icon !== previous) return;
+    formData.icon = icon;
+    ElMessage.success(target.internal ? '已使用名称首字作为图标' : '图标地址已获取');
+  } catch (error) {
+    if (version === lookupVersion && dialogVisible.value)
+      ElMessage.warning(getErrorMessage(error, '获取图标失败，请手动填写'));
+  } finally {
+    if (version === lookupVersion) iconLoading.value = false;
+  }
+};
 //拖拽事件
 const onDragStart = (event: DragEvent, id: number) => {
+  if (props.selectionBusy) {
+    event.preventDefault();
+    return;
+  }
   if (!props.activeLists.some((item) => item.id === id && item.can_edit)) {
     event.preventDefault();
     return;
@@ -114,7 +279,7 @@ const onDragStart = (event: DragEvent, id: number) => {
   if (!props.editMode || !event.dataTransfer) return;
   event.dataTransfer.effectAllowed = 'move';
   event.dataTransfer.setData('text/plain', String(id));
-  emit('drag-start', id);
+  emit('drag-start', id, event);
 };
 
 const orderList = computed(() => {
@@ -168,8 +333,18 @@ const editDetail = (i: Bookmark) => {
 };
 
 //删除书签
-const deleteItem = (id: number) => {
+const deleteItem = async (id: number) => {
   if (!props.activeLists.some((item) => item.id === id && item.can_edit)) return;
+  try {
+    await ElMessageBox.confirm('确定删除这个书签吗？删除后无法恢复。', '删除书签', {
+      type: 'warning',
+      confirmButtonText: '确认删除',
+      cancelButtonText: '取消',
+      confirmButtonClass: 'el-button--danger',
+    });
+  } catch {
+    return;
+  }
   deletesubMenuItem({
     subMenuId: id,
   })
@@ -215,6 +390,7 @@ const editSubMenus = async () => {
 
 //添加或修改标签
 const confirmLabel = async () => {
+  if (titleLoading.value || iconLoading.value) return;
   if (formData.targetUrl && formData.title) {
     // let len = initData.value.filter((i) => i.id == formData.id).length;
     if (dialogType.value == 'update') {
@@ -247,9 +423,28 @@ const confirmLabel = async () => {
 // );
 </script>
 <style lang="less" scoped>
+.mainLabel .box.is-selected {
+  border-color: var(--el-color-primary);
+  box-shadow: inset 0 0 0 1px var(--el-color-primary);
+}
+.mainLabel .box.is-editable {
+  user-select: none;
+  cursor: grab;
+}
+.mainLabel .box.is-dragging {
+  opacity: 0.45;
+}
+.mainLabel .box.is-editable:focus-visible {
+  outline: 2px solid var(--el-color-primary);
+  outline-offset: 3px;
+}
+.mainLabel .box.is-editable:hover {
+  transform: none;
+}
 .mainLabel {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  min-width: 0;
+  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
   gap: 18px;
   &::before {
     content: '常用网址与灵感，都有自己的位置。';
@@ -258,6 +453,7 @@ const confirmLabel = async () => {
     color: var(--theme-muted);
     font-size: 13px;
     line-height: 1.6;
+    overflow-wrap: anywhere;
   }
   .box {
     width: auto;
@@ -303,10 +499,42 @@ const confirmLabel = async () => {
     &.hoverStyle {
       border: 2px dashed var(--el-color-primary);
     }
+    &.is-editable :deep(.el-card__body) {
+      display: grid;
+      grid-template-columns: auto minmax(0, 1fr);
+      gap: 8px 12px;
+    }
     .edit {
       display: flex;
-      gap: 10px;
+      grid-column: 1 / -1;
+      justify-self: end;
+      gap: 6px;
       color: var(--theme-muted);
+      button {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 32px;
+        height: 30px;
+        padding: 0;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: inherit;
+        cursor: pointer;
+        &:hover,
+        &:focus-visible {
+          color: var(--el-color-primary);
+        }
+        &:focus-visible {
+          outline: 2px solid var(--el-color-primary);
+          outline-offset: 1px;
+        }
+      }
+      svg {
+        width: 16px;
+        height: 16px;
+      }
     }
   }
   .lastBox {
@@ -324,25 +552,79 @@ const confirmLabel = async () => {
     }
   }
   .autoBtn {
-    display: flex;
-    gap: 12px;
-    justify-content: space-between;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+    min-width: 0;
+    align-items: center;
+    gap: 8px;
+    > .el-button {
+      min-width: 0;
+      max-width: 100%;
+      height: auto;
+      min-height: var(--app-button-height);
+      margin-left: 0;
+      padding: 4px 8px;
+      font-size: 12px;
+      white-space: normal;
+    }
+  }
+  .metadata-hint {
+    margin: 12px 0 0;
+    color: var(--theme-muted);
+    font-size: 12px;
+    line-height: 1.7;
   }
   :deep(.el-form-item) {
     margin-bottom: 16px;
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 1000px) {
   .mainLabel {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-    gap: 12px;
+    grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
+    gap: 14px;
+    &::before {
+      margin-bottom: 6px;
+    }
     .box {
       padding: 16px;
-      min-height: 90px;
-      gap: 12px;
+      min-height: 88px;
     }
-    .autoBtn {
-      flex-wrap: wrap;
+  }
+}
+@media (max-width: 640px) {
+  .mainLabel {
+    grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
+    gap: 10px;
+    &::before {
+      margin-bottom: 2px;
+      font-size: 12px;
+    }
+    .box {
+      padding: 12px;
+      min-height: 78px;
+      gap: 8px;
+      :deep(.el-card__body) {
+        gap: 8px;
+        > .bookmark-title {
+          font-size: 13px;
+        }
+      }
+    }
+  }
+}
+@media (max-height: 600px) {
+  .mainLabel {
+    gap: 10px;
+    &::before {
+      margin-bottom: 0;
+      font-size: 12px;
+    }
+    .box {
+      min-height: 72px;
+      padding: 12px;
+      &:hover {
+        transform: none;
+      }
     }
   }
 }

@@ -2,7 +2,14 @@ import { reactive } from 'vue';
 import apiClient from '@/api/apiClient';
 import { getToken } from '@/utils/auth';
 
+export interface ColorCard {
+  label: string;
+  variable: string;
+  light?: string;
+  dark?: string;
+}
 export interface ThemeSettings {
+  colorCards?: ColorCard[];
   mode: 'light' | 'dark';
   primaryColor: string;
   overlay: number;
@@ -13,7 +20,9 @@ const defaults = (): ThemeSettings => ({
   primaryColor: '#409eff',
   overlay: 0.35,
   hasBackground: false,
+  colorCards: [],
 });
+export const defaultThemeSettings = defaults;
 export const themeState = reactive({
   settings: defaults(),
   backgroundUrl: '',
@@ -21,6 +30,12 @@ export const themeState = reactive({
   error: '',
 });
 let generation = 0;
+const appliedColorVariables = new Set<string>();
+const colorAliases: Record<string, string[]> = {
+  '--background-main': ['--theme-page', '--el-bg-color-page'],
+  '--font-primary': ['--theme-text', '--el-text-color-primary', '--el-text-color-regular'],
+  '--font-highlight': ['--ui-accent-text'],
+};
 const mix = (color: string, target: number, amount: number) => {
   const rgb = [1, 3, 5].map((start) =>
     Math.round(parseInt(color.slice(start, start + 2), 16) * (1 - amount) + target * amount),
@@ -29,6 +44,8 @@ const mix = (color: string, target: number, amount: number) => {
 };
 export function applyTheme(settings: ThemeSettings, backgroundUrl = themeState.backgroundUrl) {
   const root = document.documentElement;
+  for (const name of appliedColorVariables) root.style.removeProperty(name);
+  appliedColorVariables.clear();
   root.dataset.theme = settings.mode;
   root.style.colorScheme = settings.mode;
   root.style.setProperty('--el-color-primary', settings.primaryColor);
@@ -45,6 +62,15 @@ export function applyTheme(settings: ThemeSettings, backgroundUrl = themeState.b
     backgroundUrl ? `url("${backgroundUrl}")` : 'none',
   );
   root.dataset.hasBackground = String(Boolean(backgroundUrl));
+  for (const card of settings.colorCards || []) {
+    const value = card[settings.mode];
+    if (value) {
+      for (const variable of [card.variable, ...(colorAliases[card.variable] || [])]) {
+        root.style.setProperty(variable, value);
+        appliedColorVariables.add(variable);
+      }
+    }
+  }
 }
 function setBackground(url = '') {
   if (themeState.backgroundUrl) URL.revokeObjectURL(themeState.backgroundUrl);
@@ -96,17 +122,34 @@ async function changeTheme(
   const response = await request();
   if (!token || token !== getToken() || revision !== generation)
     throw new Error('登录状态已改变，请重新打开主题设置');
-  themeState.settings = response.data.data;
-  themeState.error = '';
-  if (reloadImage && themeState.settings.hasBackground) {
+  const settings = response.data.data;
+  let background: string | undefined;
+  if (reloadImage && settings.hasBackground) {
     const image = await apiClient.get('/theme/background', { responseType: 'blob' });
     if (token !== getToken() || revision !== generation) throw new Error('登录状态已改变');
-    setBackground(URL.createObjectURL(image.data));
-  } else if (!themeState.settings.hasBackground) setBackground();
+    background = URL.createObjectURL(image.data);
+  } else if (!settings.hasBackground) background = '';
+  themeState.settings = settings;
+  themeState.error = '';
+  if (background !== undefined) setBackground(background);
   applyTheme(themeState.settings);
 }
-export const saveTheme = (settings: ThemeSettings) =>
-  changeTheme(() => apiClient.put('/theme', settings));
+export const saveTheme = (settings: ThemeSettings, background?: File | null) =>
+  background instanceof File
+    ? changeTheme(
+        () =>
+          apiClient.put('/theme/background', background, {
+            params: { settings: JSON.stringify(settings) },
+            headers: { 'Content-Type': background.type },
+          }),
+        true,
+      )
+    : changeTheme(() =>
+        apiClient.put('/theme', {
+          ...settings,
+          ...(background === null ? { removeBackground: true } : {}),
+        }),
+      );
 export const uploadBackground = (file: File) =>
   changeTheme(
     () =>

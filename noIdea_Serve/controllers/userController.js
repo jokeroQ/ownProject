@@ -37,14 +37,18 @@ exports.login = async (req, res, next) => {
     return res.status(400).json({ message: '请输入用户名和密码', code: 400 });
   }
   try {
-    const user = await User.findOne({ where: { username: username.trim() } });
-    if (!user || !await bcrypt.compare(password, user.password)) {
-      return res.status(401).json({ message: '用户名或密码错误', code: 401 });
-    }
-    const token = crypto.randomBytes(32).toString('hex');
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
-    await Session.create({ token_hash: hashToken(token), user_id: user.id, expires_at: expiresAt });
-    res.json({ message: '登录成功', token, expiresAt, user: publicUser(user), code: 200 });
+    const result = await sequelize.transaction(async transaction => {
+      // Password verification and session creation share the same row lock as
+      // administrator edits/resets: an old password cannot mint a post-reset session.
+      const user = await User.findOne({ where: { username: username.trim() }, transaction, lock: transaction.LOCK.UPDATE });
+      if (!user || !await bcrypt.compare(password, user.password)) return null;
+      const token = crypto.randomBytes(32).toString('hex');
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+      await Session.create({ token_hash: hashToken(token), user_id: user.id, expires_at: expiresAt }, { transaction });
+      return { token, expiresAt, user: publicUser(user) };
+    });
+    if (!result) return res.status(401).json({ message: '用户名或密码错误', code: 401 });
+    res.json({ message: '登录成功', ...result, code: 200 });
   } catch (error) { next(error); }
 };
 
@@ -55,6 +59,7 @@ exports.me = async (req, res, next) => {
 exports.logout = async (req, res, next) => {
   try {
     await Session.destroy({ where: { token_hash: req.sessionHash } });
+    require('../realtime/chatSocket').disconnectSession(req.sessionHash);
     res.json({ message: '已退出登录', status: 200 });
   } catch (error) { next(error); }
 };

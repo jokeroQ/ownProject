@@ -23,5 +23,23 @@ VS Code 安装仓库推荐的 Vue - Official、ESLint 和 Prettier 扩展，禁�
 
 主题设置入口仅在 Home 页面显示；已保存的主题仍全局应用，子页面、登录页和注册页不显示设置按钮。无需更新数据库。
 
+站内一对一私聊已接入真实账号、数据库和实时通知。更新已有环境后，需要在后端执行一次 `npm run migrate:chat`；启动步骤、接口和测试说明见 [CHAT_SETUP.md](../CHAT_SETUP.md)。
+
+可视化地图使用 Apache ECharts 与本地中国省级地图数据，入口位于“有趣功能点…”分类，支持缩放、平移、省市下钻和按账号保存在本机浏览器的多点标记。已有环境在后端执行 `npm run migrate:visual-map` 增补入口；配置和检查说明见 [MAP_SETUP.md](../MAP_SETUP.md)。
+
+## 屏幕适配
+
+首页、聊天、流程图、签名板、登录注册和弹窗支持手机、平板与桌面布局，低高度窗口使用紧凑布局。全局可用高度跟随可见视口调整；手机弹出键盘后，聊天输入和发送按钮保持可达。签名板会随窗口尺寸与像素密度重建画布并保留笔迹；流程图画布在自己的容器内滚动。
+
+在后端目录运行 `npm run test:responsive-browser` 可执行真实浏览器检查，需要本地 Playwright 和 Chrome/Chromium，并通过 `PLAYWRIGHT_MODULE`、`CHROMIUM_PATH` 指定路径。脚本读取后端 `.env` 的连接信息，使用独立随机测试库，覆盖320、390、768、1024、1366、1920像素宽度及手机横屏；测试结束会清理临时数据库和服务。可用 `RESPONSIVE_ARTIFACT_DIR` 指定报告和截图目录。
+
+## 弹窗与控件样式
+
+弹窗、确认框、下拉菜单、颜色选择和删除浮层的公共样式集中在 `src/assets/styles/overlays.css`。新增弹窗沿用 Element Plus 组件和公共规则；页面只补充业务布局，避免单独覆盖公共尺寸。确认框桌面宽度为400px，小屏幕随视口收缩，长内容保留滚动且隐藏滚动条。
+
+普通操作按钮统一为32px高，尺寸由 `global-theme.css` 中的 `--app-button-height` 与 `--app-button-padding` 控制。纯图标按钮沿用 `app-icon-button` 公共样式，无边框和底色，悬停时改变图标颜色。用户管理的返回、编辑、重置密码和翻页图标保留32px点击区域、悬停提示与无障碍名称。
+
+在后端目录运行 `npm run test:ui-browser`，沿用上述浏览器路径配置，检查浅色和深色主题下的桌面、手机、小屏幕与横屏弹出控件。测试使用随机独立数据库并自动清理，检查边界、标题对齐、按钮高度与横向溢出；可通过 `THEME_SETTINGS_ARTIFACT_DIR` 保存报告和截图。
+
 可用登录密码
 cara/cara

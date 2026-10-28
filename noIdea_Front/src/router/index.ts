@@ -26,12 +26,14 @@ const router = createRouter({
 router.beforeEach(async (to) => {
   const needsCheck = to.meta.requiresAuth || (to.name === 'login' && getToken());
   let isLoggedIn = false;
+  let currentUser: CurrentUser | null = null;
   if (needsCheck && getToken()) {
     const token = getToken()!;
     try {
       const response = await apiClient.get<{ user: CurrentUser }>('/users/me');
       if (token !== getToken()) return false;
       updateCurrentUser(response.data.user, token);
+      currentUser = response.data.user;
       isLoggedIn = true;
     } catch {
       isLoggedIn = false;
@@ -47,6 +49,11 @@ router.beforeEach(async (to) => {
 
   if (to.name === 'login' && isLoggedIn) {
     return { name: 'home' };
+  }
+
+  if (to.meta.requiresAdmin && currentUser?.role !== 'admin') {
+    const category = typeof to.query.fromCategory === 'string' ? to.query.fromCategory : undefined;
+    return { name: 'home', query: category ? { category } : undefined };
   }
 
   return true;

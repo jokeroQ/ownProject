@@ -2,10 +2,12 @@
   <span class="bookmark-icon" aria-hidden="true">
     <img
       v-if="source && failedSource !== source"
+      :key="source"
       :src="source"
+      referrerpolicy="no-referrer"
       alt=""
       :draggable="false"
-      @error="failedSource = source"
+      @error="onImageError"
     />
     <span v-else class="bookmark-initial">{{ initial }}</span>
   </span>
@@ -13,10 +15,18 @@
 
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import { bookmarkInitial, isTextBookmarkIcon } from '@/utils/bookmarkMetadata';
 const props = defineProps<{ icon?: string | null; title: string }>();
-const source = computed(() => props.icon?.trim() || '');
-const initial = computed(() => Array.from(props.title.trim())[0] || '?');
+const iconValue = computed(() => props.icon?.trim() || '');
+const source = computed(() => (isTextBookmarkIcon(iconValue.value) ? '' : iconValue.value));
+const initial = computed(() =>
+  isTextBookmarkIcon(iconValue.value) ? iconValue.value : bookmarkInitial(props.title),
+);
 const failedSource = ref('');
+const onImageError = (event: Event) => {
+  const image = event.target as HTMLImageElement;
+  if (image.getAttribute('src') === source.value) failedSource.value = source.value;
+};
 watch(source, () => {
   failedSource.value = '';
 });

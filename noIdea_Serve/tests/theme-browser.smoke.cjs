@@ -1,4 +1,5 @@
 // Optional real-browser smoke test. See THEME_SETUP.md for prerequisites.
+require('../config/env');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
 const fs = require('node:fs');
@@ -8,6 +9,8 @@ const { spawn } = require('node:child_process');
 const mysql = require('mysql2/promise');
 const sharp = require('sharp');
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
+const selectThemeMode = require('./theme-mode-control.cjs');
+const { setThemeColor } = require('./theme-color-control.cjs');
 
 async function main() {
   const database = `ownproject_test_${crypto.randomBytes(8).toString('hex')}`;
@@ -25,7 +28,9 @@ async function main() {
     await admin.query(fs.readFileSync(path.join(__dirname, 'fixtures/legacy.sql'), 'utf8'));
     const models = require('../models'); sequelize = models.sequelize;
     await admin.query('INSERT INTO users (username,email,password,created_at) VALUES (?,?,?,NOW())', ['cara', 'cara@example.test', await require('bcryptjs').hash('browser-password', 10)]);
-    await require('../migrations/user-data')(); await require('../migrations/themes')(); await require('../migrations/flowcharts')();
+    await require('../migrations/user-data')(); await require('../migrations/themes')(); await require('../migrations/flowcharts')(); await require('../migrations/chat')();
+    if (process.env.THEME_SETTINGS_FOCUS === 'visual-map') await require('../migrations/visual-map')();
+    if (process.env.THEME_SETTINGS_FOCUS === 'workspace-features') await require('../migrations/workspace-features')();
     server = await require('../app').start();
     if (!server.listening) await new Promise(resolve => server.once('listening', resolve));
     const api = `http://127.0.0.1:${server.address().port}/api`;
@@ -36,20 +41,34 @@ async function main() {
     }
     const frontend = process.env.THEME_FRONTEND_ROOT || path.resolve(__dirname, '../../noIdea_Front');
     const frontendPort = Number(process.env.THEME_FRONTEND_PORT || 5187);
-    const url = `http://127.0.0.1:${frontendPort}`;
-    vite = spawn(process.execPath, [path.join(frontend, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', String(frontendPort), '--strictPort'], {
-      cwd: frontend, env: { ...process.env, VITE_API_BASE_URL: api }, stdio: ['ignore', 'pipe', 'pipe'],
+    const url = process.env.THEME_FRONTEND_URL || `http://127.0.0.1:${frontendPort}`;
+    if (process.env.THEME_FRONTEND_URL) assert.ok(['localhost', '127.0.0.1', '[::1]'].includes(new URL(url).hostname));
+    if (!process.env.THEME_FRONTEND_URL) vite = spawn(process.execPath, [path.join(frontend, 'node_modules/vite/bin/vite.js'), '--host', '127.0.0.1', '--port', String(frontendPort), '--strictPort'], {
+      cwd: frontend, env: { ...process.env, VITE_API_BASE_URL: api, VITE_CACHE_DIR: path.join(uploads, 'vite-cache') }, stdio: ['ignore', 'pipe', 'pipe'],
     });
-    let output = ''; vite.stdout.on('data', chunk => output += chunk); vite.stderr.on('data', chunk => output += chunk);
+    let output = ''; vite?.stdout.on('data', chunk => output += chunk); vite?.stderr.on('data', chunk => output += chunk);
     let ready = false;
     for (let i = 0; i < 100; i++) {
-      if (vite.exitCode !== null) throw new Error('Vite 启动失败：' + output);
+      if (vite && vite.exitCode !== null) throw new Error('Vite 启动失败：' + output);
       try { if ((await fetch(url)).ok) { ready = true; break; } } catch { /* Still starting. */ }
       await new Promise(resolve => setTimeout(resolve, 200));
     }
     assert.ok(ready, output);
     browser = await chromium.launch({ headless: true, ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] });
     const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
+    if (process.env.THEME_FRONTEND_URL) await page.route(target => target.pathname.startsWith('/api/') || target.pathname.startsWith('/socket.io/'), route => {
+      const target = new URL(route.request().url());
+      return route.continue({ url: target.pathname.startsWith('/api/') ? api + target.pathname.slice('/api'.length) + target.search : new URL(api).origin + target.pathname + target.search });
+    });
+    if (process.env.THEME_FRONTEND_URL) await page.routeWebSocket(/\/socket\.io\//, socket => {
+      const target = new URL(socket.url()); target.host = new URL(api).host; target.protocol = 'ws:';
+      socket.connectToServer(target.toString());
+    });
+    if (process.env.THEME_FRONTEND_URL) {
+      page.on('pageerror', error => console.error('Frontend runtime:', error.message));
+      page.on('console', message => { if (['error', 'warning'].includes(message.type()) && /ECharts|geo|renderer|component/i.test(message.text())) console.error('Frontend warning:', message.text()); });
+      page.on('response', response => { if (response.status() >= 400) console.error('Frontend resource:', response.status(), new URL(response.url()).pathname); });
+    }
     const assertWatermark = async username => {
       await page.waitForFunction(name => document.getElementById('global-watermark')?.dataset.username === name, username);
       const style = await page.locator('#global-watermark').evaluate(element => {
@@ -74,6 +93,21 @@ async function main() {
       await assertWatermark(username);
     };
     await login('cara');
+    if (['save-only', 'style-audit', 'flowchart-layout', 'visual-map', 'workspace-features'].includes(process.env.THEME_SETTINGS_FOCUS)) {
+      try {
+        const scenario = process.env.THEME_SETTINGS_FOCUS === 'workspace-features' ? './workspace-features-scenarios.cjs' : process.env.THEME_SETTINGS_FOCUS === 'visual-map' ? './visual-map-scenarios.cjs'
+          : process.env.THEME_SETTINGS_FOCUS === 'flowchart-layout' ? './flowchart-layout-scenarios.cjs'
+          : process.env.THEME_SETTINGS_FOCUS === 'style-audit' ? './ui-style-scenarios.cjs' : './theme-settings-scenarios.cjs';
+        await require(process.env.THEME_SETTINGS_SCENARIO || scenario)({ page, api, artifacts: process.env.THEME_SETTINGS_ARTIFACT_DIR });
+      } catch (error) {
+        if (process.env.THEME_SETTINGS_ARTIFACT_DIR) {
+          fs.mkdirSync(process.env.THEME_SETTINGS_ARTIFACT_DIR, { recursive: true });
+          await page.screenshot({ path: path.join(process.env.THEME_SETTINGS_ARTIFACT_DIR, 'failure.png'), fullPage: true });
+        }
+        throw error;
+      }
+      return;
+    }
     const lightWatermark = await assertWatermark('cara');
     await page.evaluate(() => localStorage.setItem('user', '{broken-json'));
     await page.reload();
@@ -264,8 +298,8 @@ async function main() {
     await page.locator('[data-section]').first().waitFor();
     console.log('PASS: 流程图入口、节点拖动编辑、箭头连线、撤销重做、账户保存刷新、SVG 导出、未保存拦截及返回分类');
     await page.getByRole('button', { name: '主题设置', exact: true }).click();
-    await page.locator('#theme-mode').selectOption('dark');
-    await page.locator('#theme-color').fill('#7c3aed');
+    await selectThemeMode(page, 'dark');
+    await setThemeColor(page, '#7c3aed');
     await page.locator('#theme-overlay').evaluate(element => { element.value = '0.65'; element.dispatchEvent(new Event('input', { bubbles: true })); });
     await page.getByRole('button', { name: '保存设置', exact: true }).click();
     await page.getByText('主题已保存', { exact: true }).waitFor();
@@ -276,8 +310,10 @@ async function main() {
     assert.equal((await getTheme()).overlay, 0.65);
     const image = await sharp({ create: { width: 1600, height: 900, channels: 3, background: '#284d69' } }).png().toBuffer();
     await page.locator('#theme-file').setInputFiles({ name: 'background.png', mimeType: 'image/png', buffer: image });
-    await page.getByText('背景图片已保存', { exact: true }).waitFor();
-    await page.locator('#theme-mode').selectOption('light');
+    await page.getByRole('button', { name: '保存设置', exact: true }).click();
+    await page.getByRole('button', { name: '保存设置', exact: true }).waitFor({ state: 'visible' });
+    await page.waitForFunction(() => document.documentElement.dataset.hasBackground === 'true');
+    await selectThemeMode(page, 'light');
     await page.getByRole('button', { name: '关闭', exact: true }).click();
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark');
     assert.equal((await getTheme()).mode, 'dark');
@@ -351,7 +387,8 @@ async function main() {
   } finally {
     if (browser) await browser.close();
     if (vite) { vite.kill(); await new Promise(resolve => vite.exitCode === null ? vite.once('exit', resolve) : resolve()); }
-    if (server) await new Promise(resolve => server.close(resolve));
+    if (server?.io) await new Promise(resolve => server.io.close(resolve));
+    if (server?.listening) await new Promise(resolve => server.close(resolve));
     if (sequelize) await sequelize.close();
     await admin.query(`DROP DATABASE IF EXISTS \`${database}\``); await admin.end();
     fs.rmSync(uploads, { recursive: true, force: true });

@@ -25,7 +25,9 @@ export function getCurrentUser(): CurrentUser | null {
       typeof user.username === 'string' &&
       user.username.trim() &&
       'email' in user &&
-      typeof user.email === 'string'
+      typeof user.email === 'string' &&
+      'role' in user &&
+      (user.role === 'admin' || user.role === 'user')
     )
       return user as CurrentUser;
   } catch {
@@ -61,7 +63,12 @@ export function configureAuth(client: AxiosInstance) {
   client.interceptors.response.use(
     (response) => response,
     (error) => {
-      if (error.response?.status === 401 && error.config?.headers?.Authorization) {
+      const currentToken = getToken();
+      if (
+        error.response?.status === 401 &&
+        currentToken &&
+        error.config?.headers?.Authorization === `Bearer ${currentToken}`
+      ) {
         clearLogin();
         // Reloading clears any in-memory data from the previous account.
         if (window.location.pathname !== '/') window.location.assign('/');

@@ -1,5 +1,29 @@
 export default [
   {
+    path: '/series',
+    name: 'seriesSearch',
+    component: () => import('@views/series/index.vue'),
+    meta: { title: '最新剧集检索', requiresAuth: true },
+  },
+  {
+    path: '/dinner',
+    name: 'dinnerWheel',
+    component: () => import('@views/dinner/index.vue'),
+    meta: { title: '今晚吃什么', requiresAuth: true },
+  },
+  {
+    path: '/map',
+    name: 'visualMap',
+    component: () => import('@views/map/index.vue'),
+    meta: { title: '可视化地图', requiresAuth: true },
+  },
+  {
+    path: '/admin/users',
+    name: 'userManagement',
+    component: () => import('@views/admin/users.vue'),
+    meta: { title: '用户管理', requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/flowchart',
     name: 'flowchart',
     component: () => import('@views/flowchart/index.vue'),
@@ -19,7 +43,7 @@ export default [
     name: 'test',
     component: () => import('@views/test/index.vue'),
     meta: {
-      title: '测试页面',
+      title: '颜色变量测试',
       requiresAuth: true,
     },
   },

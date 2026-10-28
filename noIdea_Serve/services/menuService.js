@@ -31,18 +31,64 @@ const bookmarkData = data => {
   result.type = result.targetUrl.startsWith('/') ? 'internal' : 'external';
   return result;
 };
+const recordIds = values => {
+  if (!Array.isArray(values) || !values.length || values.length > 500) fail('请选择1–500个项目');
+  const ids = values.map(id);
+  if (new Set(ids).size !== ids.length) fail('项目不能重复');
+  return ids;
+};
+// Lock every owned parent in a stable order; batch writes remain atomic with single-item moves.
+exports.batchSubMenus = (data, userId) => sequelize.transaction({ isolationLevel: 'READ COMMITTED' }, async transaction => {
+  const ids = recordIds(data.ids);
+  if (!['move', 'delete'].includes(data.action)) fail('不支持的批量操作');
+  const parents = await Menu.findAll({ where: { user_id: userId }, order: [['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+  const rows = await MenuList.findAll({ where: { id: ids, menu_id: parents.map(menu => menu.id) }, order: [['menu_id', 'ASC'], ['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+  if (rows.length !== ids.length) fail('部分书签不存在，请刷新后重试', 404);
+  for (const row of rows) await editable(row, userId, transaction);
+  const displayOrder = new Map([...parents].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id).map((menu, index) => [menu.id, index]));
+  rows.sort((a, b) => displayOrder.get(a.menu_id) - displayOrder.get(b.menu_id) || a.order - b.order || a.id - b.id);
+  if (data.action === 'delete') {
+    await MenuList.destroy({ where: { id: ids }, transaction });
+  } else {
+    const target = id(data.menuId);
+    if (!parents.some(menu => menu.id === target)) fail('目标分类不存在', 404);
+    const targetRows = await MenuList.findAll({ where: { menu_id: target }, order: [['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+    const before = data.beforeId == null ? null : id(data.beforeId);
+    if (before !== null && !targetRows.some(row => row.id === before)) fail('目标书签不存在', 404);
+    if (ids.includes(before)) return { count: 0 };
+    const sourceIds = [...new Set(rows.map(row => row.menu_id))].filter(source => source !== target);
+    const reordered = targetRows.filter(row => !ids.includes(row.id));
+    const position = before === null ? reordered.length : reordered.findIndex(row => row.id === before);
+    reordered.splice(position, 0, ...rows);
+    for (const [index, row] of reordered.entries()) await row.update({ menu_id: target, order: index + 1 }, { transaction });
+    for (const source of sourceIds) {
+      const remaining = await MenuList.findAll({ where: { menu_id: source }, order: [['order', 'ASC'], ['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+      for (const [index, row] of remaining.entries()) await row.update({ order: index + 1 }, { transaction });
+    }
+  }
+  return { count: rows.length };
+});
+exports.reorderMenus = (values, userId) => sequelize.transaction(async transaction => {
+  const ids = recordIds(values);
+  await User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+  const menus = await Menu.findAll({ where: { user_id: userId }, order: [['id', 'ASC']], transaction, lock: transaction.LOCK.UPDATE });
+  if (ids.length !== menus.length || menus.some(menu => !ids.includes(menu.id))) fail('分类已变化，请刷新后重新排序', 409);
+  for (const menu of menus) await menu.update({ sort_order: ids.indexOf(menu.id) + 1 }, { transaction });
+});
 exports.getAllMenuItems = async userId => {
   const admin = await isAdmin(userId);
   const menus = await Menu.findAll({
   where: { user_id: userId }, include: [{ model: MenuList, as: 'menuLists' }],
-  order: [['id', 'ASC'], [{ model: MenuList, as: 'menuLists' }, 'order', 'ASC']],
+  order: [['sort_order', 'ASC'], ['id', 'ASC'], [{ model: MenuList, as: 'menuLists' }, 'order', 'ASC']],
   });
   return menus.map(menu => ({ ...menu.toJSON(), can_edit: admin || !menu.is_locked,
     can_delete: admin || (!menu.is_locked && !menu.menuLists.some(item => item.is_locked)),
     menuLists: menu.menuLists.map(item => publicBookmark(item, admin)) }));
 };
 exports.createMenuItem = (value, userId) => sequelize.transaction(async transaction => {
-  const menu = await Menu.create({ title: title(value), user_id: userId }, { transaction });
+  await User.findByPk(userId, { transaction, lock: transaction.LOCK.UPDATE });
+  const last = await Menu.max('sort_order', { where: { user_id: userId }, transaction });
+  const menu = await Menu.create({ title: title(value), user_id: userId, sort_order: (last || 0) + 1 }, { transaction });
   await menu.update({ index: String(menu.id) }, { transaction });
   return menu;
 });

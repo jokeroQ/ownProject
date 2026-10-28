@@ -1,6 +1,6 @@
 <template>
   <el-container class="full-height">
-    <el-aside width="200px">
+    <el-aside width="232px" class="category-sidebar" style="background: var(--background-aside)">
       <el-menu :default-active="activeTab" class="el-menu-vertical-demo">
         <el-menu-item-group>
           <el-menu-item
@@ -13,7 +13,7 @@
             :class="{ 'drop-target': dropCategory === String(i.id) }"
             v-for="i in state.menus"
             :key="i.index"
-            >{{ i.title }}
+            ><span class="category-name" :title="i.title">{{ i.title }}</span>
             <i-ep-lock
               v-if="!i.can_edit"
               class="readonly-icon"
@@ -38,16 +38,73 @@
           </el-menu-item>
         </el-menu-item-group>
       </el-menu>
-      <div class="btnGroup">
-        <i-ep-folderAdd @click="createMenu" />
-        <i-ep-setting @click="goEdit" />
-        <i-ep-download />
-        <i-ep-upload />
-        <i-ep-questionFilled />
+      <div class="btnGroup" data-home-toolbar aria-label="分类工具栏">
+        <button
+          type="button"
+          class="sidebar-action app-icon-button"
+          aria-label="调整分类顺序"
+          title="调整分类顺序"
+          :disabled="selectionBusy || moving || !state.menus.length"
+          @click="sortingCategories = true"
+        >
+          <i-ep-sort />
+        </button>
+        <button
+          type="button"
+          class="sidebar-action app-icon-button"
+          data-home-add-category
+          aria-label="添加分类"
+          title="添加分类"
+          @click="createMenu"
+        >
+          <i-ep-folderAdd />
+        </button>
+        <button
+          type="button"
+          class="sidebar-action app-icon-button"
+          data-home-edit-mode
+          :class="{ 'is-active': editMode }"
+          :aria-pressed="editMode"
+          aria-label="编辑书签"
+          title="编辑书签"
+          @click="goEdit"
+        >
+          <i-ep-setting />
+        </button>
+        <button
+          type="button"
+          class="sidebar-action app-icon-button sidebar-action--secondary"
+          data-home-secondary-action="download"
+          aria-label="下载"
+          title="下载（暂未开放）"
+          disabled
+        >
+          <i-ep-download />
+        </button>
+        <button
+          type="button"
+          class="sidebar-action app-icon-button sidebar-action--secondary"
+          data-home-secondary-action="upload"
+          aria-label="上传"
+          title="上传（暂未开放）"
+          disabled
+        >
+          <i-ep-upload />
+        </button>
+        <button
+          type="button"
+          class="sidebar-action app-icon-button sidebar-action--secondary"
+          data-home-secondary-action="help"
+          aria-label="帮助"
+          title="帮助（暂未开放）"
+          disabled
+        >
+          <i-ep-questionFilled />
+        </button>
       </div>
     </el-aside>
-    <el-container>
-      <el-header class="header">
+    <el-container class="bookmark-workspace">
+      <el-header class="header" style="background: var(--background-header)">
         <el-input
           v-model="searchValue"
           placeholder="请输入搜索内容"
@@ -55,21 +112,42 @@
           clearable
         >
           <template #append>
-            <el-button :icon="Search" @click="goSearch" />
+            <el-button
+              class="app-icon-button"
+              :icon="Search"
+              aria-label="搜索"
+              title="搜索"
+              @click="goSearch"
+            />
           </template>
         </el-input>
 
         <div class="user-actions">
-          <div v-if="currentUser" class="current-user" :title="currentUser.username">
+          <router-link
+            v-if="currentUser?.role === 'admin'"
+            class="current-user current-user-admin"
+            data-admin-entry
+            :to="{ name: 'userManagement', query: { fromCategory: activeTab } }"
+            :title="`${currentUser.username} · 用户管理`"
+            aria-label="用户管理"
+          >
+            <el-icon class="current-user-icon" aria-hidden="true"><User /></el-icon>
+            <span class="current-user-name">{{ currentUser.username }}</span>
+          </router-link>
+          <div v-else-if="currentUser" class="current-user" :title="currentUser.username">
             <el-icon class="current-user-icon" aria-hidden="true"><User /></el-icon>
             <span class="current-user-name">{{ currentUser.username }}</span>
           </div>
-          <el-button type="danger" plain @click="logout"> 退出登录 </el-button>
+          <el-button class="home-logout" data-home-logout type="danger" plain @click="logout">
+            退出登录
+          </el-button>
         </div>
       </el-header>
       <main
         ref="contentRoot"
         class="el-main"
+        :class="{ 'is-editing': editMode }"
+        @pointerdown="startMarquee"
         @scroll.passive="onContentScroll"
         @wheel.passive="cancelAutoScroll"
         @touchstart.passive="cancelAutoScroll"
@@ -77,9 +155,13 @@
         @drop="stopDrag"
         @dragleave="leaveContent"
       >
-        <p v-if="editMode" class="drag-help">
-          可编辑自己新增的项目。拖到书签上可插到它前面；拖到分类名称或空白处可移到末尾。
-        </p>
+        <BatchToolbar
+          v-if="editMode"
+          v-model:selected-ids="selectedIds"
+          v-model:busy="selectionBusy"
+          :menus="state.menus"
+          @changed="getMenu"
+        />
         <section
           v-for="menu in state.menus"
           :key="menu.id"
@@ -96,6 +178,10 @@
             :editMode="editMode"
             :activeLists="menu.menuLists"
             :dragging="draggedBookmark !== null"
+            :selected-ids="selectedIds"
+            :dragged-ids="draggedIds"
+            :selection-busy="selectionBusy"
+            @toggle-selection="toggleSelection"
             @update-message="getMenu"
             @drag-start="startDrag"
             @drag-end="stopDrag"
@@ -106,11 +192,20 @@
           </p>
         </section>
         <p v-if="!state.menus.length" class="empty-category">点击左侧添加分类，开始收藏。</p>
+        <Teleport to="body">
+          <div
+            v-if="rectangle"
+            data-bookmark-marquee
+            class="bookmark-marquee"
+            :style="rectangle"
+            aria-hidden="true"
+          />
+        </Teleport>
       </main>
       <el-footer>
         <div class="bottom">
           <p>{{ state.moto }}</p>
-          <el-link @click="exitMode" :underline="false" v-if="editMode">退出编辑模式</el-link>
+          <el-link @click="exitMode" underline="never" v-if="editMode">退出编辑模式</el-link>
         </div>
       </el-footer>
     </el-container>
@@ -122,37 +217,45 @@
     >
       <el-input
         v-model="labelName"
-        style="width: 240px"
+        class="category-name-input"
         placeholder="请输入标签名称"
         @keyup.enter="addType"
       />
       <template #footer>
         <div class="dialog-footer">
-          <el-button type="primary" @click="addType"> 确认 </el-button>
           <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="addType">确认</el-button>
         </div>
       </template>
     </el-dialog>
-    <ThemeSettings />
+    <CategoryOrderDialog
+      v-model="sortingCategories"
+      :menus="state.menus"
+      @changed="getMenu"
+    /><ThemeSettings />
   </el-container>
 </template>
 
 <script setup lang="ts">
 defineOptions({ name: 'HomePage' });
 import MainLabel from '@/components/label/MainLabel.vue';
+import { useBookmarkMarquee } from '@/components/label/useBookmarkMarquee';
+import BatchToolbar from '@/components/label/BatchToolbar.vue';
+import CategoryOrderDialog from '@/components/label/CategoryOrderDialog.vue';
 import ThemeSettings from '@/components/theme/ThemeSettings.vue';
 import { getMotto } from '@views/home/home';
-import { deleteMenuItem, moveSubItem } from '@/api/menuApi/menu';
+import { deleteMenuItem, moveSubItems } from '@/api/menuApi/menu';
 import { Search, User } from '@element-plus/icons-vue';
 import { reactive, ref, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import { postRequest, getRequest, putRequest } from '../../utils/httpService';
-import { useRouter, useRoute } from 'vue-router';
+import { onBeforeRouteLeave, useRouter, useRoute } from 'vue-router';
 import { clearLogin, getCurrentUser } from '@/utils/auth';
 import type { Menu } from '@/utils/types';
 import { getErrorMessage } from '@/utils/errors';
 import 'element-plus/es/components/message/style/css';
 import 'element-plus/es/components/message-box/style/css';
+import '@/assets/styles/logout-confirm.css';
 // const state = reactive({
 //   menuList: menuList,
 // });
@@ -170,11 +273,29 @@ const state = reactive<{ moto: string; menus: Menu[] }>({
   moto: getMotto(),
   menus: [],
 });
+const selectedIds = ref<number[]>([]);
+const selectionBusy = ref(false);
+const sortingCategories = ref(false);
+let suppressSelectionUntil = 0;
+const toggleSelection = (id: number) => {
+  if (selectionBusy.value || performance.now() < suppressSelectionUntil) return;
+  selectedIds.value = selectedIds.value.includes(id)
+    ? selectedIds.value.filter((value) => value !== id)
+    : [...selectedIds.value, id];
+};
 const editMode = ref<boolean>(false);
 const mode = ref<string>('add');
 const index = ref<string>('');
 const contentRoot = ref<HTMLElement | null>(null);
+const { rectangle, startMarquee, cancelMarquee } = useBookmarkMarquee(
+  contentRoot,
+  editMode,
+  selectionBusy,
+  selectedIds,
+);
 const draggedBookmark = ref<number | null>(null);
+const draggedIds = ref<number[]>([]);
+let dragPreview: HTMLElement | null = null;
 const dropCategory = ref('');
 const moving = ref(false);
 let scrollTarget = '';
@@ -182,16 +303,40 @@ let scrollFrame = 0;
 let dragFrame = 0;
 let dragSpeed = 0;
 let categoryNavigation = 0;
+let leavingHome = false;
+const stopNavigationReset = router.afterEach((to, _from, failure) => {
+  if (failure && to.name !== 'home') leavingHome = false;
+});
+onBeforeRouteLeave(() => {
+  leavingHome = true;
+  cancelMarquee();
+  cancelAutoScroll();
+  cancelAnimationFrame(scrollFrame);
+});
 const sections = () =>
   Array.from(contentRoot.value?.querySelectorAll<HTMLElement>('[data-section]') || []);
+const categoryOffset = () => {
+  const root = contentRoot.value;
+  if (!root || !editMode.value) return 24;
+  return (
+    24 +
+    (Number.parseFloat(getComputedStyle(root).paddingTop) || 0) +
+    (root.querySelector<HTMLElement>('.batch-toolbar')?.offsetHeight || 0)
+  );
+};
 const scrollToCategory = (category: string, smooth = false) => {
   const root = contentRoot.value;
   const section = sections().find((item) => item.dataset.section === category);
   if (!root || !section) return;
-  scrollTarget = category;
+  const atStart = section === sections()[0];
+  scrollTarget = atStart ? '' : category;
   root.scrollTo({
-    top:
-      section.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 24,
+    top: atStart
+      ? 0
+      : section.getBoundingClientRect().top -
+        root.getBoundingClientRect().top +
+        root.scrollTop -
+        categoryOffset(),
     behavior:
       smooth && !window.matchMedia('(prefers-reduced-motion: reduce)').matches
         ? 'smooth'
@@ -208,7 +353,7 @@ const onContentScroll = () => {
     const root = contentRoot.value;
     if (!root) return;
     const all = sections();
-    const top = root.getBoundingClientRect().top + 48;
+    const top = root.getBoundingClientRect().top + categoryOffset() + 24;
     const current =
       all.filter((section) => section.getBoundingClientRect().top <= top).at(-1) || all[0];
     const atBottom =
@@ -230,12 +375,45 @@ const onContentScroll = () => {
     }
   });
 };
-const startDrag = (id: number) => {
+const startDrag = (id: number, event: DragEvent) => {
+  if (selectionBusy.value) return;
   if (!state.menus.some((menu) => menu.menuLists.some((item) => item.id === id && item.can_edit)))
     return;
+  cancelMarquee();
+  if (!selectedIds.value.includes(id)) selectedIds.value = [id];
+  draggedIds.value = [...selectedIds.value];
   draggedBookmark.value = id;
+  if (event.dataTransfer) {
+    event.dataTransfer.setData('text/plain', JSON.stringify(draggedIds.value));
+    if (draggedIds.value.length > 1) {
+      dragPreview = document.createElement('div');
+      dragPreview.textContent = draggedIds.value.length + ' 个书签';
+      Object.assign(dragPreview.style, {
+        position: 'fixed',
+        top: Math.min(event.clientY, window.innerHeight - 80) + 'px',
+        left: Math.min(event.clientX, window.innerWidth - 180) + 'px',
+        padding: '16px 28px',
+        background: 'var(--el-bg-color)',
+        color: 'var(--el-color-primary)',
+        border: '2px solid var(--el-color-primary)',
+        borderRadius: '12px',
+        boxShadow:
+          '4px 4px 0 var(--el-color-primary-light-7), 8px 8px 0 var(--el-color-primary-light-9)',
+        font: '600 14px sans-serif',
+        pointerEvents: 'none',
+      });
+      document.body.appendChild(dragPreview);
+      event.dataTransfer.setDragImage(dragPreview, 24, 24);
+      const preview = dragPreview;
+      requestAnimationFrame(() => preview.remove());
+    }
+  }
 };
 const stopDrag = () => {
+  if (draggedBookmark.value !== null) suppressSelectionUntil = performance.now() + 250;
+  dragPreview?.remove();
+  dragPreview = null;
+  draggedIds.value = [];
   draggedBookmark.value = null;
   dropCategory.value = '';
   dragSpeed = 0;
@@ -249,18 +427,27 @@ const allowDrop = (event: DragEvent, category: string) => {
   dropCategory.value = category;
 };
 const moveBookmark = async (menuId: string, beforeId?: number) => {
-  const subMenuId = draggedBookmark.value;
+  const ids = [...draggedIds.value];
   stopDrag();
-  if (subMenuId === null || !editMode.value || moving.value || subMenuId === beforeId) return;
+  if (
+    !ids.length ||
+    !editMode.value ||
+    moving.value ||
+    selectionBusy.value ||
+    (beforeId !== undefined && ids.includes(beforeId))
+  )
+    return;
   moving.value = true;
+  selectionBusy.value = true;
   try {
-    await moveSubItem({ subMenuId, menuId, beforeId });
+    await moveSubItems({ ids, menuId, beforeId });
     await getMenu();
-    ElMessage.success('书签已移动');
+    ElMessage.success(ids.length > 1 ? '已移动 ' + ids.length + ' 个书签' : '书签已移动');
   } catch (error) {
     ElMessage.error(getErrorMessage(error, '移动失败，请重试'));
   } finally {
     moving.value = false;
+    selectionBusy.value = false;
   }
 };
 const dropBookmark = (event: DragEvent, menuId: string) => {
@@ -291,6 +478,7 @@ const leaveContent = (event: DragEvent) => {
     dragSpeed = 0;
 };
 onBeforeUnmount(() => {
+  stopNavigationReset();
   stopDrag();
   cancelAnimationFrame(scrollFrame);
   window.removeEventListener('user-changed', syncCurrentUser);
@@ -298,7 +486,8 @@ onBeforeUnmount(() => {
   window.removeEventListener('storage', syncCurrentUser);
 });
 const syncCategoryUrl = (category: string) => {
-  if (route.name !== 'home' || route.query.category === (category || undefined)) return;
+  if (leavingHome || route.name !== 'home' || route.query.category === (category || undefined))
+    return;
   categoryNavigation++;
   void router
     .replace({
@@ -353,6 +542,9 @@ const getMenu = async () => {
   return getRequest<Menu[]>('/menu/getMenus')
     .then((res) => {
       state.menus = res.data;
+      selectedIds.value = selectedIds.value.filter((id) =>
+        res.data.some((menu) => menu.menuLists.some((item) => item.id === id && item.can_edit)),
+      );
       restoreCategory();
       return nextTick().then(() => {
         if (firstLoad || previousCategory !== activeTab.value) scrollToCategory(activeTab.value);
@@ -384,13 +576,17 @@ const handleClose = () => {
 
 //开启编辑功能
 const goEdit = () => {
+  cancelAutoScroll();
   editMode.value = true;
+  void nextTick(() => scrollToCategory(activeTab.value));
   ElMessage({
-    message: '已经开启编辑功能，点击右下角可退出',
+    message: '已开启编辑，可在空白处拉框选择书签',
   });
 };
 //关闭编辑模式
 const exitMode = () => {
+  if (selectionBusy.value) return;
+  selectedIds.value = [];
   stopDrag();
   editMode.value = false;
   ElMessage({
@@ -483,6 +679,8 @@ const logout = async () => {
       confirmButtonText: '退出',
       cancelButtonText: '取消',
       type: 'warning',
+      customClass: 'logout-confirm-dialog',
+      confirmButtonClass: 'logout-confirm-button',
     });
 
     await postRequest('/users/logout', {});
@@ -504,13 +702,22 @@ const logout = async () => {
 </script>
 <style lang="less" scoped>
 .full-height {
+  --home-gutter: 20px;
   width: 100%;
-  height: 100%;
-  padding: 20px;
+  height: var(--app-height, 100dvh);
+  min-width: 0;
+  min-height: 0;
+  padding: max(var(--home-gutter), env(safe-area-inset-top))
+    max(var(--home-gutter), env(safe-area-inset-right))
+    max(var(--home-gutter), env(safe-area-inset-bottom))
+    max(var(--home-gutter), env(safe-area-inset-left));
   gap: 20px;
   box-sizing: border-box;
   .el-aside {
-    width: 232px !important;
+    width: clamp(180px, 18vw, 232px) !important;
+    min-width: 0;
+    min-height: 0;
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
@@ -527,7 +734,9 @@ const logout = async () => {
     }
   }
   > .el-container {
+    flex: 1 1 0;
     min-width: 0;
+    min-height: 0;
     border: 1px solid var(--el-border-color-lighter);
     border-radius: 22px;
     overflow: hidden;
@@ -535,6 +744,7 @@ const logout = async () => {
     box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
   }
   .el-main {
+    min-width: 0;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -565,6 +775,7 @@ const logout = async () => {
   }
 }
 .category-section {
+  min-width: 0;
   margin-top: 28px;
   padding: 16px;
   border: 2px solid transparent;
@@ -573,6 +784,7 @@ const logout = async () => {
     margin: 0 0 18px;
     font-size: 20px;
     color: var(--theme-text);
+    overflow-wrap: anywhere;
   }
 }
 .drop-target {
@@ -584,14 +796,23 @@ const logout = async () => {
   color: var(--theme-muted);
   padding: 12px 0;
   font-size: 14px;
+  overflow-wrap: anywhere;
 }
-.drag-help {
-  color: var(--theme-muted);
-  font-size: 13px;
-  line-height: 1.6;
+.bookmark-marquee {
+  position: fixed;
+  z-index: 3;
+  pointer-events: none;
+  border: 1px solid var(--el-color-primary);
+  background: color-mix(in srgb, var(--el-color-primary) 12%, transparent);
+  border-radius: 3px;
+}
+.el-main.is-editing {
+  user-select: none;
 }
 .el-menu {
+  background: transparent;
   flex: 1;
+  min-width: 0;
   min-height: 0;
   padding: 0 12px;
   overflow-y: auto;
@@ -614,6 +835,7 @@ const logout = async () => {
   margin-bottom: 6px;
   padding: 0 14px !important;
   justify-content: space-between;
+  gap: 8px;
   border-radius: 12px;
   font-size: 14px;
   transition:
@@ -623,13 +845,22 @@ const logout = async () => {
     background: var(--el-color-primary-light-9);
     font-weight: 650;
   }
-  &:hover .edit {
+  &:hover .edit,
+  &:focus-within .edit {
     display: flex;
   }
+}
+.category-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .edit {
   display: none;
   gap: 8px;
+  flex-shrink: 0;
   color: var(--theme-muted);
   svg {
     width: 15px;
@@ -643,24 +874,48 @@ const logout = async () => {
   color: var(--theme-muted);
 }
 .btnGroup {
-  display: flex;
-  justify-content: space-between;
-  gap: 12px;
-  margin: 20px;
-  padding-top: 18px;
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  align-items: center;
+  flex-shrink: 0;
+  gap: 2px;
+  margin: 16px;
+  padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
   color: var(--theme-muted);
-  svg {
+}
+.sidebar-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 0;
+  height: var(--app-button-height);
+  padding: 0;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  &:not(:disabled):hover,
+  &:focus-visible,
+  &.is-active {
+    color: var(--ui-accent-text, var(--el-color-primary));
+  }
+  &:focus-visible {
+    outline: 2px solid var(--el-color-primary);
+    outline-offset: 1px;
+  }
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.45;
+  }
+  :deep(svg) {
+    display: block;
+    flex-shrink: 0;
     width: 18px;
     height: 18px;
-    cursor: pointer;
-    transition:
-      color 160ms,
-      transform 160ms;
-    &:hover {
-      color: var(--el-color-primary);
-      transform: translateY(-2px);
-    }
   }
 }
 .header {
@@ -681,7 +936,9 @@ const logout = async () => {
   }
   > .el-input {
     min-width: 0;
-    width: min(460px, 58%);
+    flex: 1 1 280px;
+    width: auto;
+    max-width: 460px;
     :deep(.el-input__wrapper) {
       height: 42px;
       padding: 0 14px;
@@ -706,7 +963,7 @@ const logout = async () => {
     min-width: 0;
     max-width: min(280px, 42%);
     margin-left: auto;
-    flex-shrink: 0;
+    flex: 0 1 auto;
   }
   .current-user {
     display: flex;
@@ -715,6 +972,20 @@ const logout = async () => {
     min-width: 0;
     color: var(--theme-text);
     font-size: 13px;
+  }
+  .current-user-admin {
+    padding: 6px 8px;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.2s;
+    &:hover {
+      color: var(--el-color-primary);
+      background: var(--el-fill-color-light);
+    }
+    &:focus-visible {
+      outline: 2px solid var(--el-color-primary);
+      outline-offset: 2px;
+    }
   }
   .current-user-icon {
     flex-shrink: 0;
@@ -726,15 +997,10 @@ const logout = async () => {
     text-overflow: ellipsis;
     white-space: nowrap;
   }
-  .user-actions > .el-button {
+  .home-logout {
     --el-button-bg-color: transparent;
-    --el-button-border-color: var(--el-border-color-lighter);
-    --el-button-text-color: var(--theme-muted);
-    --el-button-hover-bg-color: var(--el-fill-color-light);
-    --el-button-hover-border-color: var(--el-border-color);
-    --el-button-hover-text-color: var(--theme-text);
     padding: 0 14px;
-    height: 36px;
+    height: var(--app-button-height);
     font-size: 12px;
     flex-shrink: 0;
   }
@@ -749,27 +1015,37 @@ const logout = async () => {
   color: var(--theme-muted);
   font-size: 12px;
   p {
+    min-width: 0;
     margin: 0;
     line-height: 1.6;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
   .el-link {
     flex-shrink: 0;
     font-size: 12px;
   }
 }
-@media (max-width: 1000px) {
+.category-name-input {
+  width: 100%;
+  min-width: 0;
+}
+@media (max-width: 1200px) {
   .full-height {
-    padding: 14px;
+    --home-gutter: 14px;
     gap: 14px;
   }
   .full-height .el-aside {
-    width: 196px !important;
+    width: 184px !important;
   }
   .full-height .el-main {
-    padding: 24px;
+    padding: 24px 20px;
   }
   .header {
-    padding: 0 24px;
+    height: 72px;
+    padding: 0 20px;
+    gap: 16px;
     &::before {
       display: none;
     }
@@ -777,42 +1053,60 @@ const logout = async () => {
   .header > .el-input {
     flex: 1;
     width: auto;
+    max-width: none;
+  }
+  .category-section {
+    padding: 12px;
+  }
+  .full-height .el-footer {
+    height: 56px;
+    padding: 0 20px;
+  }
+  .bottom {
+    padding-right: 116px;
   }
 }
-@media (max-width: 640px) {
+@media (max-width: 900px) {
   .full-height {
-    height: 100dvh;
-    min-height: 0;
     flex-direction: column;
-    padding: 10px;
-    gap: 12px;
+    --home-gutter: 10px;
+    gap: 10px;
     .el-aside {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
       flex-shrink: 0;
       width: 100% !important;
-      border-radius: 18px;
+      border-radius: 14px;
       &::before {
-        font-size: 23px;
-        margin: 16px 20px 14px;
+        display: none;
       }
     }
     > .el-container {
-      border-radius: 18px;
-      min-height: 0;
+      border-radius: 16px;
     }
     .el-main {
-      padding: 22px 18px;
+      padding: 20px 16px;
       &::before {
         font-size: 24px;
       }
     }
     .el-footer {
-      padding: 0 18px;
-      height: 76px;
+      padding: 0 16px;
+      height: 48px;
+    }
+    :deep(.theme-launcher) {
+      right: max(24px, env(safe-area-inset-right));
+      bottom: max(18px, env(safe-area-inset-bottom));
+      height: var(--app-button-height);
+      padding: 0 12px;
     }
   }
   .el-menu {
     flex: none;
+    padding: 7px;
     overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
     &::before {
       display: none;
     }
@@ -824,33 +1118,162 @@ const logout = async () => {
   }
   .el-menu-item {
     flex-shrink: 0;
+    height: 40px;
     margin-bottom: 0;
+    max-width: min(224px, calc(100vw - 156px));
+    border-radius: 9px;
+    font-size: 13px;
+    .edit {
+      display: flex;
+    }
   }
   .btnGroup {
-    margin: 12px 20px;
-    padding-top: 12px;
+    display: flex;
+    margin: 7px 7px 7px 0;
+    padding: 0 0 0 7px;
+    border-top: 0;
+    border-left: 1px solid var(--el-border-color-lighter);
     justify-content: flex-start;
-    gap: 26px;
+    gap: 2px;
+    .sidebar-action--secondary {
+      display: none;
+    }
+  }
+  .sidebar-action {
+    width: var(--app-button-height);
+    height: var(--app-button-height);
+  }
+  .header {
+    height: 64px;
+    padding: 0 16px;
+    gap: 16px;
+    .user-actions {
+      max-width: 44%;
+    }
+  }
+  .category-section {
+    margin-top: 20px;
+    padding: 8px;
+    h2 {
+      margin-bottom: 14px;
+      font-size: 18px;
+    }
+  }
+  .bottom {
+    padding-right: 104px;
+    font-size: 11px;
+    gap: 8px;
+  }
+}
+@media (max-width: 600px) {
+  .full-height {
+    --home-gutter: 8px;
+    gap: 8px;
+    .el-main {
+      padding: 16px 12px;
+      &::before {
+        font-size: 22px;
+      }
+    }
+    .el-footer {
+      padding: 0 12px;
+    }
+    :deep(.theme-launcher) {
+      right: max(20px, env(safe-area-inset-right));
+      bottom: max(16px, env(safe-area-inset-bottom));
+    }
   }
   .header {
     height: auto;
-    min-height: 112px;
-    padding: 12px 18px;
+    padding: 10px 12px;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
     .user-actions {
       order: -1;
       width: 100%;
       max-width: none;
+      justify-content: space-between;
+      margin-left: 0;
+      gap: 12px;
+      > .el-button {
+        height: var(--app-button-height);
+        padding: 0 10px;
+      }
+    }
+    .current-user {
+      flex: 1;
     }
     > .el-input {
       flex: 0 0 100%;
       width: 100%;
+      :deep(.el-input__wrapper) {
+        height: 36px;
+        padding: 0 10px;
+      }
+      :deep(.el-input-group__append) {
+        padding: 0 14px;
+      }
     }
   }
+  .category-section {
+    margin-top: 16px;
+    padding: 4px;
+  }
+}
+@media (max-height: 600px) {
+  .full-height {
+    --home-gutter: 8px;
+    gap: 8px;
+    .el-aside::before {
+      margin: 14px 18px;
+      font-size: 24px;
+    }
+    .el-main {
+      padding: 12px 16px;
+      &::before {
+        font-size: 20px;
+        margin-bottom: 4px;
+      }
+    }
+    .el-footer {
+      height: 40px;
+      padding: 0 16px;
+    }
+    :deep(.theme-launcher) {
+      right: max(24px, env(safe-area-inset-right));
+      bottom: max(13px, env(safe-area-inset-bottom));
+      height: var(--app-button-height);
+      padding: 0 12px;
+    }
+  }
+  .header {
+    height: 52px;
+    padding: 0 16px;
+    > .el-input :deep(.el-input__wrapper) {
+      height: 34px;
+    }
+  }
+  .category-section {
+    margin-top: 12px;
+    padding: 6px;
+    h2 {
+      margin-bottom: 10px;
+      font-size: 17px;
+    }
+  }
+  .btnGroup {
+    margin-top: 8px;
+    margin-bottom: 8px;
+  }
   .bottom {
-    padding-right: 100px;
-    font-size: 11px;
+    padding-right: 104px;
+  }
+}
+@media (max-width: 600px) and (max-height: 600px) {
+  .header {
+    height: auto;
+    padding: 8px 12px;
+    gap: 6px;
   }
 }
 </style>

@@ -30,3 +30,9 @@ export const moveSubItem = (data: {
   menuId: RecordId;
   beforeId?: RecordId;
 }): Promise<ApiResponse<void>> => postRequest('/menu/subMenus/move', data);
+export const moveSubItems = (data: {
+  ids: number[];
+  menuId: RecordId;
+  beforeId?: RecordId;
+}): Promise<ApiResponse<{ count: number }>> =>
+  postRequest('/menu/subMenus/batch', { ...data, action: 'move' });

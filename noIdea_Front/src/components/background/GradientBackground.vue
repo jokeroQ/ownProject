@@ -51,9 +51,10 @@ export default defineComponent({
   justify-content: center;
   gap: 24px;
   box-sizing: border-box;
-  padding: 32px 20px;
+  padding: max(32px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   width: 100%;
-  min-height: 100vh;
+  min-height: var(--app-height, 100dvh);
   height: auto;
   background:
     radial-gradient(ellipse at 18% 12%, var(--el-color-primary-light-9), transparent 50%),
@@ -69,8 +70,11 @@ export default defineComponent({
 }
 @media (max-height: 600px) {
   .gradient-background {
-    gap: 16px;
-    padding: 24px 20px;
+    gap: 12px;
+    padding: 20px;
+  }
+  .gradient-background::before {
+    font-size: 30px;
   }
 }
 </style>

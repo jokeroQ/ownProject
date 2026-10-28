@@ -1,8 +1,12 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted } from 'vue';
+import { ElConfigProvider } from 'element-plus';
+import zhCn from 'element-plus/es/locale/lang/zh-cn';
 import { loadTheme } from '@/utils/theme';
 import { getCurrentUser } from '@/utils/auth';
+import { useViewportHeight } from '@/utils/useViewportHeight';
 import { setGlobalWatermark, removeGlobalWatermark } from '@/utils/useSetwatermarker';
+useViewportHeight();
 const syncWatermark = () => {
   const user = getCurrentUser();
   if (user) setGlobalWatermark(user.username);
@@ -35,10 +39,12 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="theme-shell">
-    <div class="theme-backdrop" aria-hidden="true"></div>
-    <router-view></router-view>
-  </div>
+  <el-config-provider :locale="zhCn">
+    <div class="theme-shell">
+      <div class="theme-backdrop" aria-hidden="true"></div>
+      <router-view></router-view>
+    </div>
+  </el-config-provider>
 </template>
 
 <style scoped></style>

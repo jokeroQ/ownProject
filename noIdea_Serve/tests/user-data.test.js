@@ -1,3 +1,4 @@
+require('../config/env');
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -254,7 +255,7 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
     });
     await t.test('主题迁移可重跑、偏好按用户保存', async () => {
       assert.deepEqual((await request('GET', '/theme', alice)).body.data, {
-        mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false,
+        mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false, colorCards: [],
       });
       assert.equal((await request('GET', '/theme')).status, 401);
       const updated = await request('PUT', '/theme', alice, { mode: 'dark', primaryColor: '#7c3aed', overlay: 0.65, user_id: cara.id });
@@ -302,9 +303,37 @@ test('数据库迁移、默认副本和用户数据隔离', async t => {
       assert.equal(fs.readdirSync(uploadDir).length, 1);
       await upload(alice, image, 'image/jpeg');
       const reset = await request('DELETE', '/theme', alice);
-      assert.deepEqual(reset.body.data, { mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false });
+      assert.deepEqual(reset.body.data, { mode: 'light', primaryColor: '#409eff', overlay: 0.35, hasBackground: false, colorCards: [] });
       assert.equal((await request('GET', '/theme', bob)).body.data.hasBackground, true);
       assert.equal(fs.readdirSync(uploadDir).length, 1);
+    });
+    await t.test('配色与背景一起保存，校验失败不改配色或删除原图片', async () => {
+      const image = await sharp({ create: { width: 20, height: 20, channels: 3, background: '#409eff' } }).png().toBuffer();
+      const settings = { mode: 'dark', primaryColor: '#059669', overlay: 0.5 };
+      const combined = async (values, buffer = image) => {
+        const response = await fetch(base + '/theme/background?settings=' + encodeURIComponent(JSON.stringify(values)), {
+          method: 'PUT', headers: { Authorization: `Bearer ${alice}`, 'Content-Type': 'image/png' }, body: buffer,
+        });
+        return { status: response.status, body: await response.json() };
+      };
+      const before = (await request('GET', '/theme', alice)).body.data;
+      const beforeFiles = fs.readdirSync(uploadDir).sort();
+      assert.equal((await combined({ ...settings, primaryColor: 'invalid' })).status, 400);
+      assert.equal((await combined(settings, Buffer.from('invalid image'))).status, 400);
+      assert.deepEqual((await request('GET', '/theme', alice)).body.data, before);
+      assert.deepEqual(fs.readdirSync(uploadDir).sort(), beforeFiles);
+      const result = await combined(settings);
+      assert.equal(result.status, 200);
+      assert.deepEqual(result.body.data, { ...settings, hasBackground: true, colorCards: [] });
+      const files = fs.readdirSync(uploadDir).sort();
+      assert.equal((await request('PUT', '/theme', alice, { ...settings, mode: 'invalid', removeBackground: true })).status, 400);
+      assert.equal((await request('PUT', '/theme', alice, { ...settings, removeBackground: 'true' })).status, 400);
+      assert.deepEqual((await request('GET', '/theme', alice)).body.data, result.body.data);
+      assert.deepEqual(fs.readdirSync(uploadDir).sort(), files);
+      const removed = await request('PUT', '/theme', alice, { mode: 'light', primaryColor: '#409eff', overlay: 0.35, removeBackground: true });
+      assert.equal(removed.status, 200);
+      assert.deepEqual(removed.body.data, before);
+      assert.deepEqual(fs.readdirSync(uploadDir).sort(), beforeFiles);
     });
     await t.test('未登录、伪造、过期、退出凭证均无法访问', async () => {
       assert.equal((await request('GET', '/menu/getMenus')).status, 401);

@@ -15,3 +15,5 @@ exports.deleteSubMenu = handler(req => service.deleteSubMenu(req.params.subMenuI
 exports.updateSubMenu = handler(req => service.updateSubMenu(req.params.subMenuId, req.body, req.userId), '子菜单项已更新');
 exports.swapMenuOrder = handler(req => service.swapOrder(req.body.firstId, req.body.secondId, req.userId), '位置交换成功');
 exports.moveSubMenu = handler(req => service.moveSubMenu(req.body.subMenuId, req.body.menuId, req.body.beforeId, req.userId), '书签已移动');
+exports.batchSubMenus = handler(req => service.batchSubMenus(req.body, req.userId), '批量操作完成');
+exports.reorderMenus = handler(req => service.reorderMenus(req.body.ids, req.userId), '分类顺序已保存');

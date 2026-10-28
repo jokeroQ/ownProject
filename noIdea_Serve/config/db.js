@@ -1,5 +1,6 @@
+require('./env');
 const { Sequelize } = require('sequelize');
-// Production credentials are supplied through the environment, never committed.
+// Local .env is ignored by Git; system environment variables take precedence.
 const sequelize = new Sequelize(
   process.env.DB_NAME || 'noIdea',
   process.env.DB_USER || 'root',

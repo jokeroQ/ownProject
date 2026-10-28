@@ -54,7 +54,7 @@ exports.installEntry = userId => sequelize.transaction(async transaction => {
     const menus = await Menu.findAll({ where: { user_id: userId }, order: [['id', 'ASC']], transaction });
     let menu = menus.find(item => item.title.startsWith('有趣功能点'));
     if (!menu) {
-      menu = await Menu.create({ title: '有趣功能点', user_id: userId, is_locked: true }, { transaction });
+      menu = await Menu.create({ title: '有趣功能点', user_id: userId, is_locked: true, sort_order: Math.max(0, ...menus.map(item => item.sort_order)) + 1 }, { transaction });
       await menu.update({ index: String(menu.id) }, { transaction });
     }
     await menu.reload({ transaction, lock: transaction.LOCK.UPDATE });

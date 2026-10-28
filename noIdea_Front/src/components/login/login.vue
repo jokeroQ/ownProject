@@ -81,7 +81,8 @@ h1 {
   letter-spacing: 1px;
 }
 .block {
-  width: min(420px, calc(100vw - 40px));
+  width: min(420px, 100%);
+  min-width: 0;
   box-sizing: border-box;
   margin: 0;
   padding: 32px;
@@ -136,8 +137,8 @@ h1 {
     .el-button {
       width: 100%;
       margin: 0;
-      height: 44px;
-      border-radius: 12px;
+      height: var(--app-button-height);
+      border-radius: 8px;
       font-weight: 550;
     }
   }
@@ -148,6 +149,21 @@ h1 {
 @media (max-width: 480px) {
   .block {
     padding: 26px;
+  }
+}
+@media (max-height: 600px) {
+  .block {
+    padding: 22px;
+    &::before {
+      margin-bottom: 18px;
+      font-size: 20px;
+    }
+    :deep(.el-form-item) {
+      margin-bottom: 14px;
+    }
+    .btnGroup {
+      margin-top: 18px;
+    }
   }
 }
 </style>

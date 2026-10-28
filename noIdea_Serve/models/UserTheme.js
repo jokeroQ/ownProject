@@ -5,5 +5,6 @@ module.exports = sequelize.define('UserTheme', {
   mode: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'light' },
   primary_color: { type: DataTypes.STRING(7), allowNull: false, defaultValue: '#409eff' },
   overlay: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0.35 },
+  color_cards: { type: DataTypes.JSON, allowNull: true },
   background_file: { type: DataTypes.STRING(80), allowNull: true },
 }, { tableName: 'user_themes', timestamps: false });

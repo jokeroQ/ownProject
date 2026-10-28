@@ -1,7 +1,15 @@
 //注册页面
 <template>
-  <div class="p-4 w-full h-full m-auto">
-    <el-button type="primary" :icon="Back" circle @click="goBack" />
+  <div class="register-page">
+    <el-button
+      class="app-icon-button"
+      type="primary"
+      :icon="Back"
+      circle
+      aria-label="返回登录"
+      title="返回登录"
+      @click="goBack"
+    />
     <el-form label-width="auto" :model="formLabelAlign" style="max-width: 600px">
       <el-form-item label="用户名">
         <el-input v-model="formLabelAlign.username" />
@@ -60,29 +68,33 @@ const goBack = () => {
 </script>
 
 <style scoped>
-.p-4 {
+.register-page {
   position: relative;
   width: 100%;
   height: auto;
-  min-height: 100vh;
+  min-height: var(--app-height, 100dvh);
   box-sizing: border-box;
-  display: grid;
-  place-content: center;
-  padding: 40px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: max(84px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+    max(32px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left));
   background:
     radial-gradient(ellipse at 20% 15%, var(--el-color-primary-light-9), transparent 52%),
     var(--theme-page);
 }
-.p-4 > .el-button {
+.register-page > .el-button {
   position: absolute;
-  top: 28px;
-  left: 28px;
-  width: 40px;
-  height: 40px;
+  top: max(20px, env(safe-area-inset-top));
+  left: max(20px, env(safe-area-inset-left));
+  width: var(--app-button-height);
+  height: var(--app-button-height);
 }
 .el-form {
   box-sizing: border-box;
-  width: min(420px, calc(100vw - 40px));
+  width: min(420px, 100%);
+  min-width: 0;
   max-width: 420px !important;
   padding: 32px;
   border: 1px solid var(--el-border-color-lighter);
@@ -131,7 +143,22 @@ const goBack = () => {
 }
 .el-form-item:last-child .el-button {
   width: 100%;
-  height: 44px;
-  border-radius: 12px;
+  height: var(--app-button-height);
+  border-radius: 8px;
+}
+@media (max-width: 480px), (max-height: 600px) {
+  .el-form {
+    padding: 24px;
+  }
+  .el-form::before {
+    margin-bottom: 20px;
+    font-size: 20px;
+  }
+  :deep(.el-form-item) {
+    margin-bottom: 14px;
+  }
+  .el-form-item:last-child {
+    margin-top: 20px;
+  }
 }
 </style>

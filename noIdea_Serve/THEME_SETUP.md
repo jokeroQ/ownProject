@@ -1,25 +1,24 @@
 # 全局个人主题
 
-登录后在 Home 页面点击右下角“主题设置”。支持浅色/深色、主题色、背景遮罩和个人图片。配色与遮罩实时预览，点击“保存设置”写入数据库；关闭面板或离开 Home 取消未保存的配色。图片上传、移除以及恢复默认立即保存。子页面不显示设置入口，但继续应用已保存主题。
+登录后在 Home 页面点击右下角“主题设置”。支持浅色/深色、主题色、背景遮罩和个人图片。所有选项都先保留为草稿，点击“保存设置”并保存成功后才应用到页面；关闭面板或离开 Home 会丢弃未保存的修改。选中的图片仅在设置面板内显示缩略图，上传、移除以及恢复默认也需要点击保存。子页面不显示设置入口，但继续应用已保存主题。
 
 ## 已完成用户数据迁移的数据库
 
-在与之前相同的 VS Code 终端中保留 DB_USER、DB_PASSWORD、DB_NAME 等连接环境变量，然后：
+使用 Node.js 20.12+，按[数据库连接配置](USER_DATA_SETUP.md#数据库连接配置)填写 `noIdea_Serve/.env`。后端和迁移会自动读取，配置一次后更换终端、重启仍有效；已有系统或终端环境变量优先。在 `noIdea_Serve` 目录的 PowerShell 中执行：
 
-```sh
-cd noIdea_Serve
+```powershell
 npm ci
 npm run migrate:themes
 npm start
 ```
 
-新数据库先按 USER_DATA_SETUP.md 执行用户数据迁移，再执行主题迁移。主题迁移只增加 user_themes 表，可以重复执行，不会更改分类、书签或个人主题。
+新数据库先按 USER_DATA_SETUP.md 执行用户数据迁移，再执行主题迁移。主题迁移只增加 user_themes 表，可以重复执行，不会更改分类、书签或个人主题。已有环境若主题表已就绪，仅补充 `.env` 配置后直接运行 `npm start`，无需重做历史迁移；`.env` 已忽略提交。
 
-前端继续在 noIdea_Front 中执行 npm run dev。前后端都需要更新到同一版本。主题接口为 GET/PUT/DELETE /api/theme 和 GET/PUT/DELETE /api/theme/background，均要求登录；PUT background 以原始图片二进制提交，Content-Type 为 image/jpeg、image/png 或 image/webp，不使用 multipart 表单。
+前端继续在 noIdea_Front 中执行 npm run dev。前后端都需要更新到同一版本。主题接口为 GET/PUT/DELETE /api/theme 和 GET/PUT/DELETE /api/theme/background，均要求登录；PUT background 以原始图片二进制提交，Content-Type 为 image/jpeg、image/png 或 image/webp，不使用 multipart 表单。保存图片时可通过 settings 查询参数传入 JSON 配色设置，服务端校验后在同一事务中保存图片和配色；PUT /api/theme 可带 removeBackground: true，将移除图片和配色一起保存。
 
 ## 数据及图片存储
 
-用户模式、主题色、遮罩透明度和文件名保存在 user_themes，每个 user_id 只有一条记录。未设置的用户使用浅色默认主题。
+用户模式、主题色、遮罩透明度、色卡覆盖和文件名保存在 user_themes，每个 user_id 只有一条记录。未设置的用户使用浅色默认主题。颜色变量测试页可编辑或新增色卡，点击保存后生效；浅色与深色值分别保存。升级本次收藏、转盘和色卡功能请执行 `npm run migrate:features`，详见 [功能说明](../WORKSPACE_FEATURES.md)。
 
 默认图片目录为 noIdea_Serve/uploads/themes，可以通过 THEME_UPLOAD_DIR 指定持久存储目录。需允许后端进程读写，并与数据库一起备份。目录已加入 .gitignore；图片不提交到 Git，也不公开挂载为静态资源，读取时由后端校验用户会话。部署到容器时将此目录挂载持久卷，避免重建后丢失。
 
@@ -29,8 +28,8 @@ npm start
 
 ## 验证
 
-npm test 使用独立测试数据库和临时上传目录，验证主题迁移、个性化隔离、图片解码/大小/格式限制、并发替换、删除和恢复默认，同时保留书签隔离测试。测试使用固定的旧版表结构样例，不读取实际账号导出的 noidea.sql。
+`npm test` 从 `.env` 或外部环境变量读取 MySQL 连接，账号需有创建、删除测试库的权限；使用随机命名的独立测试数据库和临时上传目录，不使用配置中的业务库名，验证主题迁移、个性化隔离、图片解码/大小/格式限制、并发替换、删除和恢复默认，同时保留书签隔离测试。测试使用固定的旧版表结构样例，不读取实际账号导出的 noidea.sql。
 
-可选真实浏览器检查：在安装好前端依赖、Playwright 和 Chromium 的环境运行 node tests/theme-browser.smoke.cjs。支持 PLAYWRIGHT_MODULE 指定 Playwright 模块路径、CHROMIUM_PATH 指定浏览器、THEME_FRONTEND_ROOT 指定前端目录。脚本创建独立测试库和上传目录，自行启动后端和 Vite，验证登录、保存、上传、取消预览、刷新恢复、跨页面主题、退出与账号切换，结束后清理测试数据和进程。
+可选真实浏览器检查：在安装好前端依赖、Playwright 和 Chromium 的环境运行 node tests/theme-browser.smoke.cjs。支持 PLAYWRIGHT_MODULE 指定 Playwright 模块路径、CHROMIUM_PATH 指定浏览器、THEME_FRONTEND_ROOT 指定前端目录。设置 THEME_SETTINGS_FOCUS=save-only 可单独验证草稿、关闭放弃、保存失败、保存成功后应用、背景上传/移除和恢复默认。脚本创建独立测试库和上传目录，自行启动后端和 Vite，验证登录、保存、上传、刷新恢复、跨页面主题、退出与账号切换，结束后清理测试数据和进程。
 
-sharp 使用平台对应的原生可选依赖：npm ci 时不要加 --omit=optional。建议 Node.js 20.3+、22 或24。前端运行 npm run check 可检查类型、ESLint 和格式；npm run build 会先执行类型检查再打包。
+sharp 使用平台对应的原生可选依赖：npm ci 时不要加 --omit=optional。使用 Node.js 20.12+、22 或24。前端运行 npm run check 可检查类型、ESLint 和格式；npm run build 会先执行类型检查再打包。

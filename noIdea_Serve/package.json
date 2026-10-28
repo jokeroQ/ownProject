@@ -3,13 +3,30 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "node --test tests/*.test.js",
+    "test": "node --test",
+    "test:chat-browser": "node tests/chat-browser.smoke.cjs",
+    "test:responsive-browser": "node tests/responsive-browser.smoke.cjs",
+    "test:admin-browser": "node tests/admin-users-browser.smoke.cjs",
+    "test:home-controls-browser": "node tests/home-controls-browser.smoke.cjs",
+    "test:ui-browser": "node tests/ui-style-browser.smoke.cjs",
+    "test:flowchart-browser": "node tests/flowchart-browser.smoke.cjs",
+    "test:visual-map-browser": "node tests/visual-map-browser.smoke.cjs",
+    "test:bookmark-metadata-browser": "node tests/bookmark-metadata-browser.smoke.cjs",
     "migrate:user-data": "node migrations/user-data.js",
     "migrate:themes": "node migrations/themes.js",
     "migrate:flowcharts": "node migrations/flowcharts.js",
+    "migrate:visual-map": "node migrations/visual-map.js",
     "migrate:permissions": "node migrations/permissions.js",
+    "migrate:chat": "node migrations/chat.js",
     "dev": "nodemon app.js",
-    "start": "node app.js"
+    "start": "node app.js",
+    "migrate:features": "node migrations/workspace-features.js",
+    "migrate:series": "node migrations/series.js",
+    "migrate:series-library": "node migrations/series-library.js",
+    "migrate:series-catalog": "node migrations/series-catalog.js",
+    "import:series": "node scripts/import-series.js",
+    "collect:series": "node scripts/collect-series.js",
+    "test:features-browser": "node tests/workspace-features-browser.smoke.cjs"
   },
   "keywords": [],
   "author": "",
@@ -19,11 +36,16 @@
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "express": "^4.21.1",
+    "htmlparser2": "^10.1.0",
+    "https-proxy-agent": "7.0.6",
+    "ipaddr.js": "^2.5.0",
     "mysql2": "^3.11.3",
     "sequelize": "^6.37.4",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "socket.io": "^4.8.4"
   },
   "devDependencies": {
-    "nodemon": "^3.1.7"
+    "nodemon": "^3.1.7",
+    "socket.io-client": "^4.8.4"
   }
 }

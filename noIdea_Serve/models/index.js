@@ -6,7 +6,13 @@ const db = {
   Session: require('./Session'),
   BookmarkTemplate: require('./BookmarkTemplate'),
   UserTheme: require('./UserTheme'),
+  UserPreference: require('./UserPreference'),
+  UserSeries: require('./UserSeries'),
+  SeriesCatalog: require('./SeriesCatalog'),
   UserFlowchart: require('./UserFlowchart'),
+  ChatConversation: require('./ChatConversation'),
+  ChatMember: require('./ChatMember'),
+  ChatMessage: require('./ChatMessage'),
   sequelize,
 };
 for (const model of Object.values(db)) {
