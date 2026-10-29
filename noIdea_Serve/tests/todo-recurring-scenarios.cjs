@@ -1,0 +1,172 @@
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+const { UserTodo, User, sequelize } = require('../models');
+const { getCalendar } = require('../services/todoPeriods');
+
+async function verifyUpgrade() {
+  assert.match(process.env.DB_NAME, /^ownproject_test_[a-f0-9]+$/);
+  const cara = await User.findOne({ where: { username: 'cara' } });
+  const row = await UserTodo.create({ user_id: cara.id, title: '升级前的普通待办', notes: '保留内容', due_date: '2026-11-01', important: true, completed: true, completed_at: new Date() });
+  await row.reload();
+  const original = row.toJSON();
+  // Recreate the pre-recurrence schema in the isolated fixture, retaining the legacy row.
+  const query = sequelize.getQueryInterface();
+  await query.removeColumn('user_todos', 'recurrence');
+  await query.removeColumn('user_todos', 'completed_period');
+  await require('../migrations/todos')();
+  const upgraded = await UserTodo.findByPk(row.id);
+  for (const key of ['title', 'notes', 'due_date', 'important', 'completed']) assert.equal(upgraded[key], original[key]);
+  assert.equal(upgraded.completed_at.toISOString(), original.completed_at.toISOString());
+  assert.equal(upgraded.recurrence, 'none');
+  assert.equal(upgraded.completed_period, null);
+  await require('../migrations/todos')();
+  await upgraded.destroy();
+  console.log('PASS: 旧待办表增量升级与重复迁移保留内容、计划日期和完成状态');
+}
+
+module.exports = async ({ page, api, artifacts, request, categoryId, bob }) => {
+  const cara = await User.findOne({ where: { username: 'cara' } });
+  const calendar = getCalendar();
+  const daily = (await request('POST', '/todos', { title: '每日测试', recurrence: 'daily' })).body.data;
+  const weekly = (await request('POST', '/todos', { title: '每周测试', recurrence: 'weekly' })).body.data;
+  const normal = (await request('POST', '/todos', { title: '普通测试' })).body.data;
+  assert.equal(daily.dueDate, null);
+  assert.equal(daily.completed, false);
+  assert.equal(normal.recurrence, 'none');
+  assert.equal((await request('POST', '/todos', { title: '非法类型', recurrence: 'monthly' })).status, 400);
+  assert.equal((await request('POST', '/todos', { title: '日期冲突', recurrence: 'daily', dueDate: '2026-10-30' })).status, 400);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { completed: true, periodKey: daily.periodKey }, bob)).status, 404);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { completed: true })).status, 409);
+  for (const item of [daily, weekly, normal]) assert.equal((await request('PATCH', `/todos/${item.id}`, { completed: true, periodKey: item.periodKey })).status, 200);
+  let result = (await request('GET', '/todos')).body.data;
+  assert.deepEqual(result.counts, { all: 3, open: 0, done: 3 });
+  assert.equal(result.clearableCount, 1);
+  assert.equal((await request('GET', '/todos?recurrence=daily&status=done')).body.data.total, 1);
+  assert.equal((await request('GET', '/todos?recurrence=weekly')).body.data.clearableCount, 0);
+  assert.equal((await request('DELETE', '/todos/completed')).body.data.removed, 1);
+  assert.equal((await request('GET', '/todos')).body.data.total, 2);
+  assert.equal((await request('DELETE', '/todos/completed')).body.data.removed, 0);
+  await UserTodo.update({ completed_period: '2000-01-01' }, { where: { user_id: cara.id } });
+  result = (await request('GET', '/todos?status=open')).body.data;
+  assert.equal(result.total, 2);
+  assert.deepEqual(result.counts, { all: 2, open: 2, done: 0 });
+  assert.ok(result.items.every(item => !item.completed && item.completedAt === null));
+  assert.equal((await request('GET', '/todos?status=done')).body.data.total, 0);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { completed: true, periodKey: 'daily:2000-01-01' })).status, 409);
+  assert.equal((await request('PATCH', `/todos/${weekly.id}`, { completed: true, periodKey: `daily:${calendar.weekStart}` })).status, 409);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { completed: true, periodKey: daily.periodKey })).status, 200);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { recurrence: 'weekly', completed: true })).status, 400);
+  const switched = (await request('PATCH', `/todos/${daily.id}`, { recurrence: 'weekly' })).body.data;
+  assert.equal(switched.completed, false);
+  assert.ok(switched.periodKey.startsWith('weekly:'));
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { completed: true, periodKey: daily.periodKey })).status, 409);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { dueDate: '2026-10-30' })).status, 400);
+  assert.equal((await request('PATCH', `/todos/${daily.id}`, { recurrence: 'none', dueDate: '2026-10-30' })).body.data.dueDate, '2026-10-30');
+  const bobTodo = (await request('POST', '/todos', { title: '其他账号每日', recurrence: 'daily' }, bob)).body.data;
+  assert.equal((await request('GET', '/todos', undefined, bob)).body.data.total, 1);
+  await request('DELETE', `/todos/${bobTodo.id}`, undefined, bob);
+  await UserTodo.destroy({ where: { user_id: cara.id } });
+  await UserTodo.bulkCreate(Array.from({ length: 33 }, (_, index) => ({ user_id: cara.id, title: `周期分页${index}`, recurrence: 'daily', completed: true, completed_period: index === 32 ? calendar.today : '2000-01-01' })));
+  const first = (await request('GET', '/todos?recurrence=daily&status=open')).body.data;
+  const second = (await request('GET', '/todos?recurrence=daily&status=open&page=2')).body.data;
+  assert.equal(first.total, 32);
+  assert.equal(first.items.length, 30);
+  assert.equal(second.items.length, 2);
+  assert.equal(new Set([...first.items, ...second.items].map(item => item.id)).size, 32);
+  assert.deepEqual(first.recurrenceCounts.daily, { all: 33, open: 32, done: 1 });
+  assert.ok(first.items.every(item => !item.completed));
+  await UserTodo.destroy({ where: { user_id: cara.id } });
+  console.log('PASS: 周期有效状态用于筛选、计数和分页，过期勾选被拒绝，清理不删重复事项且账号隔离');
+
+  await page.goto(new URL(`/todos?fromCategory=${categoryId}`, page.url()).href);
+  await page.getByText('清单还是空的', { exact: true }).waitFor();
+  const settle = () => page.waitForFunction(() => document.querySelector('.todo-results')?.getAttribute('aria-busy') === 'false');
+  const types = page.getByRole('navigation', { name: '待办类型筛选' });
+  await types.getByRole('button', { name: /^每日待办/ }).click();
+  await page.getByRole('textbox', { name: '新增待办内容' }).fill('每天读书');
+  await page.locator('.quick-add').getByRole('button', { name: '添加', exact: true }).click();
+  const dailyCheck = page.getByRole('checkbox', { name: '完成待办：每天读书', exact: true });
+  await dailyCheck.waitFor();
+  await dailyCheck.click();
+  await settle();
+  await page.locator('.todo-tabs').getByRole('button', { name: /^已完成/ }).click();
+  await page.getByRole('checkbox', { name: '恢复待办：每天读书', exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole('checkbox', { name: '恢复待办：每天读书', exact: true }).waitFor();
+  const dailyRow = (await request('GET', '/todos?recurrence=daily')).body.data.items[0];
+  await UserTodo.update({ completed_period: '2000-01-01' }, { where: { id: dailyRow.id, user_id: cara.id } });
+  await page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+  await page.getByText('还没有已完成的事项', { exact: true }).waitFor();
+  await page.locator('.todo-tabs').getByRole('button', { name: /^全部/ }).click();
+  await dailyCheck.waitFor();
+  assert.equal(await dailyCheck.getAttribute('aria-checked'), 'false');
+
+  await dailyCheck.click();
+  await page.getByRole('checkbox', { name: '恢复待办：每天读书', exact: true }).waitFor();
+  // Shorten only the response's next refresh deadline to exercise the real page timer.
+  let listRequests = 0;
+  const listPattern = /\/api\/todos(?:\?.*)?$/;
+  await page.route(listPattern, async route => {
+    if (route.request().method() !== 'GET') return route.fallback();
+    const response = await fetch(api + '/todos' + new URL(route.request().url()).search, { headers: { Authorization: route.request().headers().authorization } });
+    const body = await response.json();
+    listRequests++;
+    if (listRequests === 1) body.data.calendar.nextResetAt = new Date(Date.parse(body.data.calendar.serverNow) + 1500).toISOString();
+    await route.fulfill({ status: response.status, contentType: 'application/json', body: JSON.stringify(body) });
+  });
+  await page.getByRole('button', { name: '刷新清单', exact: true }).click();
+  await settle();
+  await UserTodo.update({ completed_period: '2000-01-01' }, { where: { id: dailyRow.id, user_id: cara.id } });
+  await dailyCheck.waitFor();
+  assert.ok(listRequests >= 2, 'Automatic period refresh reloads the list');
+  await page.unroute(listPattern);
+
+  await page.getByRole('button', { name: '编辑：每天读书', exact: true }).click();
+  const dialog = page.getByRole('dialog', { name: '编辑待办', exact: true });
+  assert.equal(await dialog.locator('#todo-due-date').count(), 0);
+  await dialog.locator('.el-select__wrapper').click();
+  await page.getByRole('option', { name: '每周待办', exact: true }).click();
+  await dialog.getByRole('button', { name: '保存', exact: true }).click();
+  await dialog.waitFor({ state: 'hidden' });
+  assert.equal(new URL(page.url()).searchParams.get('recurrence'), 'weekly');
+  await dailyCheck.waitFor();
+  await page.getByRole('textbox', { name: '新增待办内容' }).fill('每周整理房间');
+  await page.getByRole('textbox', { name: '新增待办内容' }).press('Enter');
+  await page.getByRole('checkbox', { name: '完成待办：每周整理房间', exact: true }).click();
+  await settle();
+  await page.locator('.todo-tabs').getByRole('button', { name: /^全部/ }).click();
+  await page.getByRole('checkbox', { name: '恢复待办：每周整理房间', exact: true }).waitFor();
+  await page.reload();
+  await page.getByRole('checkbox', { name: '恢复待办：每周整理房间', exact: true }).waitFor();
+  assert.ok(await page.getByRole('button', { name: '清理已完成', exact: true }).isDisabled());
+  for (const mode of ['light', 'dark']) {
+    await page.evaluate(async mode => { const theme = await import('/src/utils/theme.ts'); theme.applyTheme({ ...theme.themeState.settings, mode }); }, mode);
+    for (const [width, height] of [[1280, 900], [390, 844], [320, 568], [844, 390]]) {
+      await page.setViewportSize({ width, height });
+      assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth && [...document.querySelectorAll('.todo-recurrence, .quick-add, .todo-panel')].every(node => node.getBoundingClientRect().right <= innerWidth + 1)));
+      if (artifacts) { fs.mkdirSync(artifacts, { recursive: true }); await page.screenshot({ path: path.join(artifacts, `recurring-${mode}-${width}.png`) }); }
+    }
+  }
+  await page.setViewportSize({ width: 320, height: 568 });
+  await page.getByRole('button', { name: '编辑：每天读书', exact: true }).click();
+  await dialog.waitFor();
+  await page.waitForFunction(() => !document.querySelector('.dialog-fade-enter-active'));
+  if (artifacts) await page.screenshot({ path: path.join(artifacts, 'recurring-editor-mobile.png') });
+  await dialog.getByRole('button', { name: '取消', exact: true }).click();
+  await dialog.waitFor({ state: 'hidden' });
+  await types.getByRole('button', { name: /^普通待办/ }).click();
+  await page.getByText('清单还是空的', { exact: true }).waitFor();
+  await page.getByRole('textbox', { name: '新增待办内容' }).fill('想到了再做，不设日期');
+  await page.getByRole('textbox', { name: '新增待办内容' }).press('Enter');
+  await page.getByRole('checkbox', { name: '完成待办：想到了再做，不设日期', exact: true }).waitFor();
+  const ordinary = (await request('GET', '/todos?recurrence=none')).body.data.items[0];
+  assert.equal(ordinary.recurrence, 'none');
+  assert.equal(ordinary.dueDate, null);
+  assert.equal((await request('GET', '/todos?recurrence=weekly')).body.data.total, 2);
+  await page.getByRole('button', { name: '返回收藏', exact: true }).click();
+  await page.waitForURL(url => url.pathname === '/home');
+  assert.equal(new URL(page.url()).searchParams.get('category'), String(categoryId));
+  console.log('PASS: 每日/每周/普通分类新增与编辑、自动跨周期刷新、回到前台刷新和响应式布局');
+};
+module.exports.verifyUpgrade = verifyUpgrade;

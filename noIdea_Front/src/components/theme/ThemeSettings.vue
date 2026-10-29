@@ -9,11 +9,11 @@
     :show-close="!busy"
     :before-close="beforeClose"
   >
-    <div class="theme-settings" v-loading="themeState.loading">
+    <div class="theme-settings app-form" v-loading="themeState.loading">
       <p v-if="themeState.error" role="alert">
         {{ themeState.error }} <el-button link @click="loadTheme">重新加载</el-button>
       </p>
-      <div class="theme-setting-row">
+      <div class="theme-setting-row app-form-row">
         <label for="theme-mode">外观</label>
         <el-select
           id="theme-mode"
@@ -28,7 +28,7 @@
           <el-option label="深色" value="dark" />
         </el-select>
       </div>
-      <div class="theme-setting-row">
+      <div class="theme-setting-row app-form-row">
         <label for="theme-color">主题色</label>
         <div class="theme-setting-control">
           <el-color-picker
@@ -59,7 +59,7 @@
           </div>
         </div>
       </div>
-      <div class="theme-setting-row">
+      <div class="theme-setting-row app-form-row">
         <label for="theme-overlay">背景遮罩</label>
         <div class="theme-overlay-control">
           <input
@@ -74,8 +74,8 @@
           <output for="theme-overlay">{{ Math.round(draft.overlay * 100) }}%</output>
         </div>
       </div>
-      <div class="theme-setting-row">
-        <label for="theme-file">个人背景图片</label>
+      <div class="theme-setting-row app-form-row">
+        <label for="theme-file">背景图片</label>
         <div class="theme-setting-control">
           <input
             id="theme-file"
@@ -225,87 +225,31 @@ async function restoreDefaults() {
   height: var(--app-button-height);
   padding: 0 var(--app-button-padding);
   border-radius: 8px;
-  font-size: 12px;
+  font-size: var(--app-font-control-size);
   font-weight: 550;
-  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.12);
-}
-.theme-settings {
-  display: grid;
-  min-width: 0;
-  grid-template-columns: minmax(0, 1fr);
-  gap: 14px;
-}
-.theme-setting-row {
-  display: grid;
-  grid-template-columns: 84px minmax(0, 1fr);
-  align-items: start;
-  gap: 16px;
-  min-width: 0;
+  box-shadow: var(--app-shadow-panel);
 }
 .theme-setting-control {
   display: grid;
   gap: 12px;
   min-width: 0;
 }
-.theme-settings label {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  margin: 0;
-  font-size: 13px;
-  font-weight: 600;
-  line-height: 20px;
-  color: var(--el-text-color-primary);
-}
 .theme-mode-select {
   width: 100%;
   min-width: 0;
 }
-.theme-mode-select :deep(.el-select__wrapper) {
-  min-height: 44px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: var(--el-text-color-primary);
-  background: var(--el-fill-color-light);
-  box-shadow: 0 0 0 1px var(--el-border-color-lighter) inset;
-}
-.theme-mode-select :deep(.el-select__wrapper:not(.is-disabled):hover) {
-  box-shadow: 0 0 0 1px var(--el-border-color) inset;
-}
-.theme-mode-select :deep(.el-select__wrapper.is-focused) {
-  box-shadow: 0 0 0 1px var(--el-color-primary) inset;
-}
-:global(.theme-mode-options.el-popper) {
-  border-radius: 12px;
-  box-shadow: 0 10px 30px rgb(15 23 42 / 12%);
-}
-:global(.theme-mode-options .el-select-dropdown__list) {
-  padding: 6px;
-}
-:global(.theme-mode-options .el-select-dropdown__item) {
-  display: flex;
-  align-items: center;
-  height: 36px;
-  padding: 0 12px;
-  border-radius: 8px;
-}
-:global(.theme-mode-options .el-select-dropdown__item.is-selected) {
-  color: var(--ui-accent-text, var(--el-color-primary));
-  background: var(--el-color-primary-light-9);
-  font-weight: 600;
-}
 :global(.theme-color-picker.el-color-picker) {
   width: 100%;
-  height: 44px;
+  height: var(--app-form-control-height);
   min-width: 0;
 }
 :global(.theme-color-picker .el-color-picker__trigger) {
   width: 100%;
-  height: 44px;
+  height: var(--app-form-control-height);
   padding: 5px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--el-fill-color-light);
+  border-radius: var(--app-radius-control);
+  background: var(--app-control-bg);
   cursor: pointer;
 }
 :global(.theme-color-picker .el-color-picker__color) {
@@ -325,7 +269,7 @@ async function restoreDefaults() {
   align-items: center;
   gap: 10px;
   min-width: 0;
-  min-height: 44px;
+  min-height: var(--app-form-control-height);
 }
 .theme-overlay-control output {
   flex-shrink: 0;
@@ -338,11 +282,11 @@ async function restoreDefaults() {
 .theme-settings input[type='file'] {
   width: 100%;
   min-width: 0;
-  height: 44px;
+  height: var(--app-form-control-height);
   padding: 5px 8px;
   border: 1px dashed var(--el-border-color);
-  border-radius: 12px;
-  background: var(--el-fill-color-lighter);
+  border-radius: var(--app-radius-control);
+  background: var(--app-control-bg);
   font-size: 12px;
   line-height: 20px;
   color: var(--theme-muted);
@@ -400,10 +344,6 @@ async function restoreDefaults() {
   }
 }
 @media (max-width: 480px) {
-  .theme-setting-row {
-    grid-template-columns: 80px minmax(0, 1fr);
-    gap: 12px;
-  }
   .color-presets {
     gap: 6px;
   }

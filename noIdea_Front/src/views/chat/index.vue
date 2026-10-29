@@ -1,249 +1,276 @@
 <template>
-  <div class="chat-page">
-    <header class="page-header">
-      <PageBackButton @click="goBack" />
-      <div class="page-title">
-        <h1>聊天社区</h1>
-        <p>一对一私聊，让交流随时发生</p>
+  <div class="chat-page app-page app-page--workspace">
+    <div class="app-page__content app-page__content--workspace">
+      <header class="page-header app-page__header">
+        <PageBackButton @click="goBack" />
+        <div class="page-title app-page__heading">
+          <h1 class="app-page__title">聊天社区</h1>
+          <p class="app-page__description">一对一私聊，让交流随时发生</p>
+        </div>
+        <div class="account-state">
+          <span class="current-user">{{ currentUser?.username || '登录已失效' }}</span>
+          <span class="connection-state" :class="connectionState" role="status">
+            <i aria-hidden="true"></i>{{ connectionLabel }}
+          </span>
+        </div>
+      </header>
+
+      <div v-if="notice" class="notice" role="alert">
+        <span>{{ notice }}</span>
+        <el-button text class="text-button" native-type="button" @click="notice = ''"
+          >关闭</el-button
+        >
       </div>
-      <div class="account-state">
-        <span class="current-user">{{ currentUser?.username || '登录已失效' }}</span>
-        <span class="connection-state" :class="connectionState" role="status">
-          <i aria-hidden="true"></i>{{ connectionLabel }}
-        </span>
-      </div>
-    </header>
 
-    <div v-if="notice" class="notice" role="alert">
-      <span>{{ notice }}</span>
-      <button class="text-button" type="button" @click="notice = ''">关闭</button>
-    </div>
-
-    <div class="chat-layout" :class="{ 'conversation-open': selectedId !== null }">
-      <aside class="conversation-sidebar" aria-label="私聊会话">
-        <div class="sidebar-top">
-          <h2>
-            消息 <span v-if="totalUnread" class="total-unread">{{ totalUnread }}</span>
-          </h2>
-          <button class="text-button" :disabled="listLoading || !currentUser" @click="synchronize">
-            {{ listLoading ? '同步中…' : '刷新' }}
-          </button>
-        </div>
-        <form class="user-search" @submit.prevent="searchUsers">
-          <label class="sr-only" for="chat-user-search">搜索用户名，开始私聊</label>
-          <input
-            id="chat-user-search"
-            v-model="keyword"
-            data-chat-search
-            autocomplete="off"
-            maxlength="80"
-            placeholder="搜索用户名，开始私聊"
-            :disabled="!currentUser"
-            @input="scheduleSearch"
-          />
-          <button class="text-button" type="submit" :disabled="!currentUser || searching">
-            搜索
-          </button>
-        </form>
-        <div v-if="keyword.trim()" class="search-results" aria-live="polite">
-          <p class="section-caption">{{ searching ? '正在查找…' : '搜索结果' }}</p>
-          <p v-if="searchError" class="inline-error">{{ searchError }}</p>
-          <p v-else-if="!searching && searched && !searchResults.length" class="empty-caption">
-            没有找到其他用户，试试完整用户名。
-          </p>
-          <button
-            v-for="user in searchResults"
-            :key="user.id"
-            :data-chat-user="user.id"
-            class="search-result"
-            :disabled="creatingUserId !== null"
-            @click="startConversation(user)"
-          >
-            <span class="avatar">{{ initial(user.username) }}</span>
-            <span class="search-name">{{ user.username }}</span>
-            <span class="start-label">{{
-              creatingUserId === user.id ? '打开中…' : '发消息 →'
-            }}</span>
-          </button>
-        </div>
-        <div class="conversation-list">
-          <div v-if="listError" class="sidebar-empty" role="alert">
-            <p>{{ listError }}</p>
-            <button class="text-button" @click="synchronize">重新加载</button>
-          </div>
-          <p v-else-if="listLoading && !conversations.length" class="sidebar-empty">
-            正在加载会话…
-          </p>
-          <div v-else-if="!conversations.length" class="sidebar-empty">
-            <p>还没有会话</p>
-            <span>搜索一个用户名，开启第一段对话。</span>
-          </div>
-          <button
-            v-for="conversation in sortedConversations"
-            :key="conversation.id"
-            :data-chat-conversation="conversation.id"
-            :data-chat-unread="conversation.unreadCount"
-            class="conversation-item"
-            :class="{ selected: selectedId === conversation.id }"
-            :aria-current="selectedId === conversation.id ? 'true' : undefined"
-            @click="selectConversation(conversation.id)"
-          >
-            <span class="avatar">{{ initial(conversation.peer.username) }}</span>
-            <span class="conversation-copy">
-              <span class="conversation-name">{{ conversation.peer.username }}</span>
-              <span class="last-message">{{ preview(conversation) }}</span>
-            </span>
-            <span class="conversation-meta">
-              <time>{{
-                shortTime(conversation.lastMessage?.createdAt || conversation.updatedAt)
-              }}</time>
-              <span v-if="conversation.unreadCount" class="unread-badge">
-                {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
-              </span>
-            </span>
-          </button>
-        </div>
-      </aside>
-
-      <main class="conversation-panel">
-        <template v-if="selectedConversation">
-          <header class="conversation-header">
-            <button
-              class="mobile-back text-button"
-              data-chat-back-list
-              aria-label="返回会话列表"
-              @click="closeConversation"
+      <div class="chat-layout app-panel" :class="{ 'conversation-open': selectedId !== null }">
+        <aside class="conversation-sidebar" aria-label="私聊会话">
+          <div class="sidebar-top">
+            <h2>
+              消息 <span v-if="totalUnread" class="total-unread">{{ totalUnread }}</span>
+            </h2>
+            <el-button
+              text
+              class="text-button"
+              :disabled="listLoading || !currentUser"
+              @click="synchronize"
             >
-              ←
-            </button>
-            <span class="avatar">{{ initial(selectedConversation.peer.username) }}</span>
-            <div>
-              <h2 :title="selectedConversation.peer.username">
-                {{ selectedConversation.peer.username }}
-              </h2>
-              <p>一对一私聊</p>
-            </div>
-          </header>
-          <div class="message-scroll-area">
-            <div
-              ref="messageList"
-              class="message-list"
-              aria-label="聊天消息"
-              @scroll="onMessageScroll"
-            >
-              <p v-if="viewLoading" class="messages-placeholder" role="status">正在加载消息…</p>
-              <div v-else-if="messageError" class="messages-placeholder" role="alert">
-                <p>{{ messageError }}</p>
-                <button
-                  class="text-button"
-                  @click="selectConversation(selectedConversation.id, true)"
-                >
-                  重新加载
-                </button>
-              </div>
-              <template v-else>
-                <div v-if="historyAvailable[selectedId!]" class="history-control">
-                  <button
-                    class="text-button"
-                    data-chat-more
-                    :disabled="historyLoading"
-                    @click="loadHistory"
-                  >
-                    {{ historyLoading ? '正在加载…' : '加载更早的消息' }}
-                  </button>
-                </div>
-                <p v-else-if="displayMessages.length" class="history-start">对话从这里开始</p>
-                <div v-if="!displayMessages.length" class="messages-placeholder">
-                  <span class="empty-symbol" aria-hidden="true">✦</span>
-                  <p>向 {{ selectedConversation.peer.username }} 打个招呼吧</p>
-                </div>
-                <article
-                  v-for="message in displayMessages"
-                  :key="message.key"
-                  :data-chat-message="message.id"
-                  :data-chat-message-client="message.clientMessageId"
-                  class="message-row"
-                  :class="{ mine: message.senderId === currentUser?.id }"
-                >
-                  <span class="message-avatar avatar" aria-hidden="true">{{
-                    initial(
-                      message.senderId === currentUser?.id
-                        ? currentUser.username
-                        : selectedConversation.peer.username,
-                    )
-                  }}</span>
-                  <div class="message-content">
-                    <p class="message-bubble">{{ message.content }}</p>
-                    <div class="message-meta">
-                      <time :datetime="message.createdAt">{{
-                        messageTime(message.createdAt)
-                      }}</time>
-                      <template v-if="message.senderId === currentUser?.id">
-                        <span v-if="message.status === 'sending'">发送中…</span>
-                        <template v-else-if="message.status === 'failed'">
-                          <span class="send-error">发送失败</span>
-                          <button
-                            class="text-button"
-                            data-chat-retry
-                            @click="retryMessage(message.clientMessageId)"
-                          >
-                            重试
-                          </button>
-                        </template>
-                        <span v-else>{{
-                          message.id && message.id <= selectedConversation.peerLastReadMessageId
-                            ? '已读'
-                            : '已发送'
-                        }}</span>
-                      </template>
-                    </div>
-                    <p v-if="message.error" class="message-error">{{ message.error }}</p>
-                  </div>
-                </article>
-              </template>
-            </div>
-            <button v-if="!nearBottom && !viewLoading" class="latest-button" @click="showLatest">
-              ↓ 回到最新消息
-            </button>
+              {{ listLoading ? '同步中…' : '刷新' }}
+            </el-button>
           </div>
-          <form class="composer" @submit.prevent="sendMessage">
-            <label class="sr-only" for="chat-draft">输入消息</label>
-            <textarea
-              id="chat-draft"
-              ref="draftInput"
-              v-model="draft"
-              data-chat-composer
-              rows="3"
-              maxlength="2000"
-              placeholder="写下你想说的话…"
-              :disabled="!currentUser || viewLoading || !!messageError"
-              @keydown="onComposerKeydown"
-              @compositionstart="composing = true"
-              @compositionend="composing = false"
-            ></textarea>
-            <div class="composer-footer">
-              <span class="keyboard-hint">Enter 发送 · Shift + Enter 换行</span>
-              <span class="character-count" :class="{ 'at-limit': draft.length >= 2000 }"
-                >{{ draft.length }}/2000</span
-              >
-              <button class="button primary" data-chat-send type="submit" :disabled="!canSend">
-                发送
-              </button>
-            </div>
+          <form class="user-search app-search" @submit.prevent="searchUsers">
+            <label class="sr-only" for="chat-user-search">搜索用户名，开始私聊</label>
+            <input
+              id="chat-user-search"
+              class="app-input"
+              v-model="keyword"
+              data-chat-search
+              autocomplete="off"
+              maxlength="80"
+              placeholder="搜索用户名，开始私聊"
+              :disabled="!currentUser"
+              @input="scheduleSearch"
+            />
+            <el-button
+              text
+              class="text-button"
+              native-type="submit"
+              :disabled="!currentUser || searching"
+            >
+              搜索
+            </el-button>
           </form>
-        </template>
-        <div v-else class="welcome-state">
-          <span class="welcome-icon" aria-hidden="true"><i-ep-chatDotRound /></span>
-          <h2>{{ currentUser ? '让交流从这里开始' : '请重新登录' }}</h2>
-          <p>
-            {{
-              currentUser
-                ? '选择左侧会话，或搜索用户开始新的对话。'
-                : '当前登录状态已失效，重新登录后即可继续聊天。'
-            }}
-          </p>
-        </div>
-      </main>
+          <div v-if="keyword.trim()" class="search-results" aria-live="polite">
+            <p class="section-caption">{{ searching ? '正在查找…' : '搜索结果' }}</p>
+            <p v-if="searchError" class="inline-error">{{ searchError }}</p>
+            <p v-else-if="!searching && searched && !searchResults.length" class="empty-caption">
+              没有找到其他用户，试试完整用户名。
+            </p>
+            <button
+              v-for="user in searchResults"
+              :key="user.id"
+              :data-chat-user="user.id"
+              class="search-result"
+              :disabled="creatingUserId !== null"
+              @click="startConversation(user)"
+            >
+              <span class="avatar">{{ initial(user.username) }}</span>
+              <span class="search-name">{{ user.username }}</span>
+              <span class="start-label">{{
+                creatingUserId === user.id ? '打开中…' : '发消息 →'
+              }}</span>
+            </button>
+          </div>
+          <div class="conversation-list">
+            <div v-if="listError" class="sidebar-empty" role="alert">
+              <p>{{ listError }}</p>
+              <el-button text class="text-button" @click="synchronize">重新加载</el-button>
+            </div>
+            <p v-else-if="listLoading && !conversations.length" class="sidebar-empty">
+              正在加载会话…
+            </p>
+            <div v-else-if="!conversations.length" class="sidebar-empty">
+              <p>还没有会话</p>
+              <span>搜索一个用户名，开启第一段对话。</span>
+            </div>
+            <button
+              v-for="conversation in sortedConversations"
+              :key="conversation.id"
+              :data-chat-conversation="conversation.id"
+              :data-chat-unread="conversation.unreadCount"
+              class="conversation-item"
+              :class="{ selected: selectedId === conversation.id }"
+              :aria-current="selectedId === conversation.id ? 'true' : undefined"
+              @click="selectConversation(conversation.id)"
+            >
+              <span class="avatar">{{ initial(conversation.peer.username) }}</span>
+              <span class="conversation-copy">
+                <span class="conversation-name">{{ conversation.peer.username }}</span>
+                <span class="last-message">{{ preview(conversation) }}</span>
+              </span>
+              <span class="conversation-meta">
+                <time>{{
+                  shortTime(conversation.lastMessage?.createdAt || conversation.updatedAt)
+                }}</time>
+                <span v-if="conversation.unreadCount" class="unread-badge">
+                  {{ conversation.unreadCount > 99 ? '99+' : conversation.unreadCount }}
+                </span>
+              </span>
+            </button>
+          </div>
+        </aside>
+
+        <main class="conversation-panel">
+          <template v-if="selectedConversation">
+            <header class="conversation-header">
+              <el-tooltip content="返回会话列表" :trigger-keys="[]"
+                ><el-button
+                  class="mobile-back app-icon-button"
+                  :icon="Back"
+                  data-chat-back-list
+                  aria-label="返回会话列表"
+                  @click="closeConversation"
+                >
+                </el-button
+              ></el-tooltip>
+              <span class="avatar">{{ initial(selectedConversation.peer.username) }}</span>
+              <div>
+                <h2 :title="selectedConversation.peer.username">
+                  {{ selectedConversation.peer.username }}
+                </h2>
+                <p>一对一私聊</p>
+              </div>
+            </header>
+            <div class="message-scroll-area">
+              <div
+                ref="messageList"
+                class="message-list"
+                aria-label="聊天消息"
+                @scroll="onMessageScroll"
+              >
+                <p v-if="viewLoading" class="messages-placeholder" role="status">正在加载消息…</p>
+                <div v-else-if="messageError" class="messages-placeholder" role="alert">
+                  <p>{{ messageError }}</p>
+                  <el-button
+                    text
+                    class="text-button"
+                    @click="selectConversation(selectedConversation.id, true)"
+                  >
+                    重新加载
+                  </el-button>
+                </div>
+                <template v-else>
+                  <div v-if="historyAvailable[selectedId!]" class="history-control">
+                    <el-button
+                      text
+                      class="text-button"
+                      data-chat-more
+                      :disabled="historyLoading"
+                      @click="loadHistory"
+                    >
+                      {{ historyLoading ? '正在加载…' : '加载更早的消息' }}
+                    </el-button>
+                  </div>
+                  <p v-else-if="displayMessages.length" class="history-start">对话从这里开始</p>
+                  <div v-if="!displayMessages.length" class="messages-placeholder">
+                    <span class="empty-symbol" aria-hidden="true">✦</span>
+                    <p>向 {{ selectedConversation.peer.username }} 打个招呼吧</p>
+                  </div>
+                  <article
+                    v-for="message in displayMessages"
+                    :key="message.key"
+                    :data-chat-message="message.id"
+                    :data-chat-message-client="message.clientMessageId"
+                    class="message-row"
+                    :class="{ mine: message.senderId === currentUser?.id }"
+                  >
+                    <span class="message-avatar avatar" aria-hidden="true">{{
+                      initial(
+                        message.senderId === currentUser?.id
+                          ? currentUser.username
+                          : selectedConversation.peer.username,
+                      )
+                    }}</span>
+                    <div class="message-content">
+                      <p class="message-bubble">{{ message.content }}</p>
+                      <div class="message-meta">
+                        <time :datetime="message.createdAt">{{
+                          messageTime(message.createdAt)
+                        }}</time>
+                        <template v-if="message.senderId === currentUser?.id">
+                          <span v-if="message.status === 'sending'">发送中…</span>
+                          <template v-else-if="message.status === 'failed'">
+                            <span class="send-error">发送失败</span>
+                            <el-button
+                              link
+                              class="text-button"
+                              data-chat-retry
+                              @click="retryMessage(message.clientMessageId)"
+                            >
+                              重试
+                            </el-button>
+                          </template>
+                          <span v-else>{{
+                            message.id && message.id <= selectedConversation.peerLastReadMessageId
+                              ? '已读'
+                              : '已发送'
+                          }}</span>
+                        </template>
+                      </div>
+                      <p v-if="message.error" class="message-error">{{ message.error }}</p>
+                    </div>
+                  </article>
+                </template>
+              </div>
+              <el-button
+                type="primary"
+                plain
+                v-if="!nearBottom && !viewLoading"
+                class="latest-button"
+                @click="showLatest"
+              >
+                ↓ 回到最新消息
+              </el-button>
+            </div>
+            <form class="composer" @submit.prevent="sendMessage">
+              <label class="sr-only" for="chat-draft">输入消息</label>
+              <textarea
+                id="chat-draft"
+                class="app-textarea"
+                ref="draftInput"
+                v-model="draft"
+                data-chat-composer
+                rows="3"
+                maxlength="2000"
+                placeholder="写下你想说的话…"
+                :disabled="!currentUser || viewLoading || !!messageError"
+                @keydown="onComposerKeydown"
+                @compositionstart="composing = true"
+                @compositionend="composing = false"
+              ></textarea>
+              <div class="composer-footer">
+                <span class="keyboard-hint">Enter 发送 · Shift + Enter 换行</span>
+                <span class="character-count" :class="{ 'at-limit': draft.length >= 2000 }"
+                  >{{ draft.length }}/2000</span
+                >
+                <el-button type="primary" data-chat-send native-type="submit" :disabled="!canSend"
+                  >发送</el-button
+                >
+              </div>
+            </form>
+          </template>
+          <div v-else class="welcome-state">
+            <span class="welcome-icon" aria-hidden="true"><i-ep-chatDotRound /></span>
+            <h2>{{ currentUser ? '让交流从这里开始' : '请重新登录' }}</h2>
+            <p>
+              {{
+                currentUser
+                  ? '选择左侧会话，或搜索用户开始新的对话。'
+                  : '当前登录状态已失效，重新登录后即可继续聊天。'
+              }}
+            </p>
+          </div>
+        </main>
+      </div>
     </div>
   </div>
 </template>
@@ -253,6 +280,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { io, type Socket } from 'socket.io-client';
 import PageBackButton from '@/components/navigation/PageBackButton.vue';
+import { Back } from '@element-plus/icons-vue';
 import apiClient from '@/api/apiClient';
 import {
   createConversation,
@@ -999,23 +1027,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.chat-page {
-  max-width: 1600px;
-  margin: 0 auto;
-  --chat-gutter: 24px;
-  height: var(--app-height, 100dvh);
-  width: 100%;
-  min-width: 0;
-  padding: max(var(--chat-gutter), env(safe-area-inset-top))
-    max(var(--chat-gutter), env(safe-area-inset-right))
-    max(var(--chat-gutter), env(safe-area-inset-bottom))
-    max(var(--chat-gutter), env(safe-area-inset-left));
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  color: var(--theme-text);
-}
 button,
 input,
 textarea {
@@ -1034,30 +1045,14 @@ textarea:focus-visible {
   outline: 2px solid var(--el-color-primary);
   outline-offset: 3px;
 }
-.page-header {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) minmax(0, auto);
-  align-items: center;
-  gap: clamp(10px, 1.8vw, 22px);
-  flex-shrink: 0;
-}
-.page-title {
-  min-width: 0;
-}
 h1,
 h2,
 p {
   margin: 0;
 }
-h1 {
-  font-size: 22px;
-  letter-spacing: -0.5px;
-}
-.page-title p,
 .conversation-header p {
   margin-top: 5px;
   color: var(--theme-muted);
-  font-size: 12px;
 }
 .account-state {
   margin-left: auto;
@@ -1081,7 +1076,7 @@ h1 {
   align-items: center;
   gap: 6px;
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .connection-state i {
   width: 6px;
@@ -1094,35 +1089,6 @@ h1 {
 }
 .connection-state.expired i {
   background: var(--el-color-danger);
-}
-.button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: var(--app-button-height);
-  padding: 0 var(--app-button-padding);
-  border-radius: 8px;
-  border: 1px solid var(--el-border-color);
-  background: var(--theme-surface);
-  color: var(--theme-text);
-  font-size: 13px;
-}
-.button.primary {
-  background: var(--el-color-primary);
-  color: var(--el-color-white, #fff);
-  border-color: var(--el-color-primary);
-  min-width: 80px;
-}
-.button.subtle {
-  background: var(--theme-surface);
-}
-.text-button {
-  padding: 4px;
-  border: 0;
-  background: transparent;
-  color: var(--el-color-primary);
-  font-size: 12px;
-  white-space: nowrap;
 }
 .notice {
   flex-shrink: 0;
@@ -1152,10 +1118,6 @@ h1 {
   flex: 1;
   min-height: 0;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
-  background: var(--theme-surface);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 3%);
 }
 .conversation-sidebar {
   background: var(--el-bg-color);
@@ -1179,31 +1141,14 @@ h1 {
 }
 .total-unread {
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   font-weight: 400;
 }
 .user-search {
   display: flex;
   align-items: center;
   margin: 0 14px 14px;
-  padding: 4px 10px;
-  border: 1px solid var(--el-border-color-lighter);
-  background: var(--el-fill-color-lighter);
-  border-radius: 8px;
   gap: 6px;
-}
-.user-search input {
-  min-width: 0;
-  flex: 1;
-  border: 0;
-  background: transparent;
-  color: var(--theme-text);
-  font-size: 12px;
-  line-height: 24px;
-}
-.user-search input::placeholder,
-textarea::placeholder {
-  color: var(--theme-muted);
 }
 .search-results {
   flex-shrink: 0;
@@ -1214,7 +1159,7 @@ textarea::placeholder {
 }
 .section-caption {
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   padding: 0 8px 8px;
 }
 .empty-caption,
@@ -1248,12 +1193,12 @@ textarea::placeholder {
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
-  font-size: 13px;
+  font-size: var(--app-font-body-size);
   white-space: nowrap;
 }
 .start-label {
   flex-shrink: 0;
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--el-color-primary);
 }
 .conversation-list {
@@ -1269,7 +1214,7 @@ textarea::placeholder {
   line-height: 1.8;
 }
 .sidebar-empty span {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .conversation-item {
   display: flex;
@@ -1308,14 +1253,14 @@ textarea::placeholder {
   gap: 7px;
 }
 .conversation-name {
-  font-size: 13px;
+  font-size: var(--app-font-body-size);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .last-message {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1331,7 +1276,7 @@ textarea::placeholder {
 }
 .conversation-meta time {
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .unread-badge {
   min-width: 17px;
@@ -1343,7 +1288,7 @@ textarea::placeholder {
   border-radius: 9px;
   background: var(--el-color-primary);
   color: var(--el-color-white, #fff);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .conversation-panel {
   background: var(--el-fill-color-lighter);
@@ -1414,7 +1359,7 @@ textarea::placeholder {
 }
 .history-start {
   text-align: center;
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
   margin: 8px 0 22px;
 }
@@ -1443,7 +1388,7 @@ textarea::placeholder {
   border: 1px solid var(--el-border-color-lighter);
   border-radius: 0 12px 12px;
   color: var(--theme-text);
-  font-size: 13px;
+  font-size: var(--app-font-body-size);
   line-height: 1.75;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
@@ -1460,10 +1405,10 @@ textarea::placeholder {
   gap: 7px;
   margin-top: 6px;
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .message-meta .text-button {
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   padding: 0;
 }
 .mine .message-meta {
@@ -1474,7 +1419,7 @@ textarea::placeholder {
   color: var(--el-color-danger);
 }
 .message-error {
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   margin-top: 5px;
 }
 .latest-button {
@@ -1482,16 +1427,8 @@ textarea::placeholder {
   bottom: 12px;
   left: 50%;
   transform: translateX(-50%);
-  border: 1px solid var(--el-border-color);
-  background: var(--theme-surface);
-  color: var(--el-color-primary);
-  border-radius: 20px;
-  height: var(--app-button-height);
-  padding: 0 var(--app-button-padding);
-  font-size: 11px;
   max-width: calc(100% - 24px);
   white-space: nowrap;
-  box-shadow: 0 4px 16px rgb(0 0 0 / 8%);
 }
 .composer {
   background: var(--el-bg-color);
@@ -1503,13 +1440,6 @@ textarea::placeholder {
   width: 100%;
   box-sizing: border-box;
   resize: none;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: var(--el-fill-color-lighter);
-  color: var(--theme-text);
-  font-size: 13px;
-  line-height: 1.65;
-  padding: 10px 12px;
   height: clamp(48px, calc(var(--app-height, 100dvh) * 0.11), 96px);
   display: block;
 }
@@ -1522,7 +1452,7 @@ textarea::placeholder {
 .keyboard-hint,
 .character-count {
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .character-count {
   margin-left: auto;
@@ -1556,7 +1486,7 @@ textarea::placeholder {
   margin-bottom: 25px;
 }
 .welcome-state h2 {
-  font-size: 20px;
+  font-size: 16px;
   font-weight: 600;
 }
 .welcome-state p {
@@ -1590,9 +1520,6 @@ textarea::placeholder {
   display: none;
 }
 @media (max-width: 1000px) {
-  .chat-page {
-    --chat-gutter: 16px;
-  }
   .chat-layout {
     grid-template-columns: 270px minmax(0, 1fr);
   }
@@ -1604,33 +1531,15 @@ textarea::placeholder {
   }
 }
 @media (max-width: 760px) {
-  .chat-page {
-    --chat-gutter: 10px;
-    gap: 12px;
-  }
-  .page-header {
-    gap: 12px;
-  }
-  h1 {
-    font-size: 20px;
-  }
-  .page-title p {
-    display: none;
-  }
-  .button.subtle {
-    padding: 0 10px;
-    font-size: 11px;
-  }
   .current-user {
     max-width: min(100px, 28vw);
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
   .connection-state {
-    font-size: 9px;
+    font-size: var(--app-font-caption-size);
   }
   .chat-layout {
     display: flex;
-    border-radius: 12px;
   }
   .conversation-sidebar {
     width: 100%;
@@ -1651,10 +1560,7 @@ textarea::placeholder {
     gap: 10px;
   }
   .mobile-back {
-    display: inline-block;
-    font-size: 20px;
-    margin-right: 3px;
-    padding: 5px;
+    display: inline-flex;
   }
   .message-list {
     padding: 16px 12px;
@@ -1682,16 +1588,9 @@ textarea::placeholder {
   }
 }
 @media (max-height: 500px) {
-  .chat-page {
-    --chat-gutter: 8px;
-    gap: 8px;
-  }
   .page-title p,
   .conversation-header p {
     display: none;
-  }
-  h1 {
-    font-size: 19px;
   }
   .conversation-header {
     padding: 8px 12px;
@@ -1724,5 +1623,11 @@ textarea::placeholder {
   .welcome-icon {
     display: none;
   }
+}
+.user-search .app-input {
+  width: 100%;
+}
+.message-meta .text-button {
+  min-height: auto;
 }
 </style>

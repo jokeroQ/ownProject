@@ -1,6 +1,6 @@
 <template>
   <div
-    class="map-page"
+    class="map-page app-page"
     :data-map-level="cityLevel ? 'city' : 'province'"
     data-map-code="100000"
     :data-map-zoom="currentZoom"
@@ -17,11 +17,11 @@
         :aria-busy="loading"
       ></div>
     </div>
-    <header class="map-header">
+    <header class="map-header app-page__header">
       <PageBackButton @click="goBack" />
-      <div class="map-heading">
-        <h1>可视化地图</h1>
-        <p>缩放显示城市 · 点击标记编辑</p>
+      <div class="map-heading app-page__heading">
+        <h1 class="app-page__title">可视化地图</h1>
+        <p class="app-page__description">缩放显示城市 · 点击标记编辑</p>
       </div>
     </header>
     <div class="map-header-actions">
@@ -675,11 +675,9 @@ onBeforeUnmount(() => {
 .map-page {
   position: relative;
   width: 100%;
-  height: var(--app-height, 100dvh);
-  min-width: 0;
   overflow: hidden;
-  color: var(--theme-text);
   background: transparent;
+  padding: 0;
 }
 .map-workspace {
   position: absolute;
@@ -708,38 +706,21 @@ onBeforeUnmount(() => {
 }
 .map-header {
   position: absolute;
-  top: max(24px, env(safe-area-inset-top));
-  left: max(24px, env(safe-area-inset-left));
+  top: max(var(--app-page-gutter-y), env(safe-area-inset-top));
+  left: max(var(--app-page-gutter-x), env(safe-area-inset-left));
   display: flex;
   align-items: center;
   gap: 12px;
-}
-.map-heading h1 {
   margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-.map-heading p {
-  margin: 4px 0 0;
-  color: var(--theme-muted);
-  font-size: 11px;
-}
-.map-icon-button {
-  flex-shrink: 0;
-  width: var(--app-button-height);
-  height: var(--app-button-height);
-  margin: 0;
-}
-.map-icon-button :deep(.el-icon) {
-  font-size: 17px;
+  right: calc(var(--app-page-gutter-x) + 88px);
 }
 .map-icon-button.is-marking {
   color: var(--ui-accent-text);
 }
 .map-header-actions {
   position: absolute;
-  top: max(24px, env(safe-area-inset-top));
-  right: max(24px, env(safe-area-inset-right));
+  top: max(var(--app-page-gutter-y), env(safe-area-inset-top));
+  right: max(var(--app-page-gutter-x), env(safe-area-inset-right));
   display: flex;
   gap: 10px;
   align-items: center;
@@ -754,13 +735,13 @@ onBeforeUnmount(() => {
   position: absolute;
   right: -3px;
   top: -2px;
-  min-width: 15px;
-  padding: 1px 3px;
-  border-radius: 8px;
+  min-width: 20px;
+  padding: 0 4px;
+  border-radius: 10px;
   background: var(--el-color-primary);
   color: #fff;
-  font-size: 9px;
-  line-height: 13px;
+  font-size: var(--app-font-caption-size);
+  line-height: 20px;
   text-align: center;
   pointer-events: none;
 }
@@ -774,11 +755,6 @@ onBeforeUnmount(() => {
 .province-select,
 .city-select {
   width: 160px;
-}
-.map-search :deep(.el-select__wrapper) {
-  min-height: var(--app-button-height);
-  border-radius: 8px;
-  background: transparent;
 }
 .region-details {
   position: absolute;
@@ -798,7 +774,7 @@ onBeforeUnmount(() => {
 }
 .region-details > span {
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .region-details strong {
   margin-left: 8px;
@@ -832,7 +808,7 @@ onBeforeUnmount(() => {
   left: 50%;
   transform: translateX(-50%);
   max-width: calc(100% - 32px);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
   text-align: center;
   pointer-events: none;
@@ -869,10 +845,6 @@ onBeforeUnmount(() => {
   color: var(--ui-accent-text);
   font-size: 12px;
 }
-.marking-hint .el-button {
-  width: 24px;
-  height: 24px;
-}
 .map-footer {
   position: absolute;
   right: max(24px, env(safe-area-inset-right));
@@ -882,8 +854,9 @@ onBeforeUnmount(() => {
   justify-content: space-between;
   gap: 8px;
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   pointer-events: none;
+  flex-wrap: wrap;
 }
 .map-footer a {
   color: inherit;
@@ -898,12 +871,6 @@ onBeforeUnmount(() => {
     top: max(16px, env(safe-area-inset-top));
     left: max(12px, env(safe-area-inset-left));
     gap: 8px;
-  }
-  .map-heading h1 {
-    font-size: 18px;
-  }
-  .map-heading p {
-    font-size: 9px;
   }
   .map-header-actions {
     top: max(16px, env(safe-area-inset-top));
@@ -940,18 +907,16 @@ onBeforeUnmount(() => {
     overflow-wrap: anywhere;
   }
   .region-details > span {
-    font-size: 10px;
+    font-size: var(--app-font-caption-size);
   }
   .region-details strong {
     margin-left: 4px;
   }
-  .region-title .map-icon-button {
-    width: 24px;
-  }
   .map-footer {
     right: 12px;
     left: 12px;
-    font-size: 9px;
+    font-size: var(--app-font-caption-size);
+    flex-wrap: wrap;
   }
   .map-actions {
     bottom: 28px;
@@ -959,7 +924,7 @@ onBeforeUnmount(() => {
   }
   .marking-hint {
     bottom: 78px;
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
   .map-page:has(.marking-hint) .region-details {
     display: none;
@@ -972,9 +937,6 @@ onBeforeUnmount(() => {
   }
   .map-heading p {
     display: none;
-  }
-  .map-heading h1 {
-    font-size: 18px;
   }
   .map-header-actions {
     top: 10px;
@@ -1001,10 +963,16 @@ onBeforeUnmount(() => {
     right: 12px;
     bottom: 8px;
     left: 12px;
-    font-size: 9px;
+    font-size: var(--app-font-caption-size);
+    flex-wrap: wrap;
   }
   .marking-hint {
     bottom: 60px;
+  }
+}
+@media (max-width: 600px), (max-height: 450px) {
+  .map-heading p {
+    display: none;
   }
 }
 </style>

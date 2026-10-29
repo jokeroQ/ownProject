@@ -68,7 +68,11 @@
       :title="dialogType == 'add' ? '添加标签' : '编辑标签'"
       width="500"
     >
-      <el-form label-width="72px" label-position="left">
+      <el-form
+        class="app-form"
+        label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+        label-position="right"
+      >
         <el-form-item label="目标网址">
           <el-input
             placeholder="请输入目标网址"
@@ -444,31 +448,22 @@ const confirmLabel = async () => {
 .mainLabel {
   display: grid;
   min-width: 0;
-  grid-template-columns: repeat(auto-fill, minmax(min(220px, 100%), 1fr));
-  gap: 18px;
-  &::before {
-    content: '常用网址与灵感，都有自己的位置。';
-    grid-column: 1 / -1;
-    margin-bottom: 14px;
-    color: var(--theme-muted);
-    font-size: 13px;
-    line-height: 1.6;
-    overflow-wrap: anywhere;
-  }
+  grid-template-columns: repeat(auto-fill, minmax(min(210px, 100%), 1fr));
+  gap: 14px;
   .box {
     width: auto;
     min-width: 0;
-    min-height: 100px;
+    min-height: 84px;
     margin: 0;
-    padding: 20px;
+    padding: 16px;
     display: flex;
     position: relative;
     align-items: center;
-    gap: 16px;
+    gap: var(--app-space-3);
     cursor: pointer;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 16px;
-    box-shadow: 0 3px 12px rgba(15, 23, 42, 0.025);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: var(--app-radius-panel);
+    box-shadow: var(--app-shadow-panel);
     transition:
       transform 180ms,
       border-color 180ms,
@@ -477,7 +472,7 @@ const confirmLabel = async () => {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 12px;
+      gap: var(--app-space-3);
       width: 100%;
       min-width: 0;
       padding: 0;
@@ -488,13 +483,13 @@ const confirmLabel = async () => {
         text-overflow: ellipsis;
         white-space: nowrap;
         font-size: 14px;
-        font-weight: 600;
+        font-weight: 550;
       }
     }
     &:hover {
-      transform: translateY(-3px);
+      transform: translateY(-1px);
       border-color: var(--el-color-primary-light-5);
-      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.07);
+      box-shadow: 0 5px 16px rgb(18 24 35 / 6%);
     }
     &.hoverStyle {
       border: 2px dashed var(--el-color-primary);
@@ -502,23 +497,23 @@ const confirmLabel = async () => {
     &.is-editable :deep(.el-card__body) {
       display: grid;
       grid-template-columns: auto minmax(0, 1fr);
-      gap: 8px 12px;
+      gap: var(--app-space-2) var(--app-space-3);
     }
     .edit {
       display: flex;
       grid-column: 1 / -1;
       justify-self: end;
-      gap: 6px;
+      gap: var(--app-space-1);
       color: var(--theme-muted);
       button {
         display: inline-flex;
         align-items: center;
         justify-content: center;
-        width: 32px;
-        height: 30px;
+        width: var(--app-button-height);
+        height: var(--app-button-height);
         padding: 0;
         border: 0;
-        border-radius: 6px;
+        border-radius: var(--app-radius-control);
         background: transparent;
         color: inherit;
         cursor: pointer;
@@ -532,8 +527,8 @@ const confirmLabel = async () => {
         }
       }
       svg {
-        width: 16px;
-        height: 16px;
+        width: var(--app-icon-size);
+        height: var(--app-icon-size);
       }
     }
   }
@@ -556,7 +551,7 @@ const confirmLabel = async () => {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
     min-width: 0;
     align-items: center;
-    gap: 8px;
+    gap: var(--app-space-2);
     > .el-button {
       min-width: 0;
       max-width: 100%;
@@ -574,17 +569,11 @@ const confirmLabel = async () => {
     font-size: 12px;
     line-height: 1.7;
   }
-  :deep(.el-form-item) {
-    margin-bottom: 16px;
-  }
 }
 @media (max-width: 1000px) {
   .mainLabel {
     grid-template-columns: repeat(auto-fill, minmax(min(190px, 100%), 1fr));
     gap: 14px;
-    &::before {
-      margin-bottom: 6px;
-    }
     .box {
       padding: 16px;
       min-height: 88px;
@@ -595,10 +584,6 @@ const confirmLabel = async () => {
   .mainLabel {
     grid-template-columns: repeat(auto-fill, minmax(min(150px, 100%), 1fr));
     gap: 10px;
-    &::before {
-      margin-bottom: 2px;
-      font-size: 12px;
-    }
     .box {
       padding: 12px;
       min-height: 78px;
@@ -615,15 +600,11 @@ const confirmLabel = async () => {
 @media (max-height: 600px) {
   .mainLabel {
     gap: 10px;
-    &::before {
-      margin-bottom: 0;
-      font-size: 12px;
-    }
     .box {
       min-height: 72px;
       padding: 12px;
       &:hover {
-        transform: none;
+        transform: translateY(-1px);
       }
     }
   }

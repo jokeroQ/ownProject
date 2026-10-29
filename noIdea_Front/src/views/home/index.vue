@@ -702,7 +702,7 @@ const logout = async () => {
 </script>
 <style lang="less" scoped>
 .full-height {
-  --home-gutter: 20px;
+  --home-gutter: 24px;
   width: 100%;
   height: var(--app-height, 100dvh);
   min-width: 0;
@@ -711,7 +711,7 @@ const logout = async () => {
     max(var(--home-gutter), env(safe-area-inset-right))
     max(var(--home-gutter), env(safe-area-inset-bottom))
     max(var(--home-gutter), env(safe-area-inset-left));
-  gap: 20px;
+  gap: var(--app-space-4);
   box-sizing: border-box;
   .el-aside {
     width: clamp(180px, 18vw, 232px) !important;
@@ -721,42 +721,42 @@ const logout = async () => {
     display: flex;
     flex-direction: column;
     justify-content: flex-start;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 22px;
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
+    border: 1px solid var(--el-border-color-light);
+    border-radius: var(--app-radius-panel);
+    box-shadow: var(--app-shadow-panel);
     &::before {
       content: 'noIdea.';
-      margin: 26px 26px 22px;
-      color: var(--ui-accent-text, var(--el-color-primary));
-      font-size: 28px;
-      font-weight: 750;
-      letter-spacing: -1.5px;
+      margin: 28px 24px 26px;
+      color: var(--theme-text);
+      font-size: 22px;
+      font-weight: 650;
+      letter-spacing: -0.8px;
     }
   }
   > .el-container {
     flex: 1 1 0;
     min-width: 0;
     min-height: 0;
-    border: 1px solid var(--el-border-color-lighter);
-    border-radius: 22px;
+    border: 1px solid var(--el-border-color-light);
+    border-radius: var(--app-radius-panel);
     overflow: hidden;
     background: var(--theme-surface);
-    box-shadow: 0 8px 32px rgba(15, 23, 42, 0.04);
+    box-shadow: var(--app-shadow-panel);
   }
   .el-main {
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    padding: 32px;
+    padding: 28px;
     &::before {
       content: '我的收藏';
       display: block;
       margin-bottom: 8px;
-      font-size: 28px;
+      font-size: var(--app-page-title-size);
       line-height: 1.35;
-      font-weight: 700;
-      letter-spacing: -0.8px;
+      font-weight: 600;
+      letter-spacing: -0.4px;
     }
   }
   .el-footer {
@@ -776,15 +776,16 @@ const logout = async () => {
 }
 .category-section {
   min-width: 0;
-  margin-top: 28px;
-  padding: 16px;
+  margin-top: 24px;
+  padding: 12px 0;
   border: 2px solid transparent;
-  border-radius: 16px;
+  border-radius: var(--app-radius-panel);
   h2 {
-    margin: 0 0 18px;
-    font-size: 20px;
+    margin: 0 0 16px;
+    font-size: 16px;
     color: var(--theme-text);
     overflow-wrap: anywhere;
+    font-weight: 600;
   }
 }
 .drop-target {
@@ -822,9 +823,9 @@ const logout = async () => {
     display: block;
     padding: 0 14px 12px;
     color: var(--theme-muted);
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 600;
-    letter-spacing: 1.5px;
+    letter-spacing: 0.5px;
   }
   :deep(.el-menu-item-group__title) {
     display: none;
@@ -842,8 +843,8 @@ const logout = async () => {
     background-color 160ms,
     color 160ms;
   &.is-active {
-    background: var(--el-color-primary-light-9);
-    font-weight: 650;
+    background: var(--app-accent-soft);
+    font-weight: 600;
   }
   &:hover .edit,
   &:focus-within .edit {
@@ -879,7 +880,8 @@ const logout = async () => {
   align-items: center;
   flex-shrink: 0;
   gap: 2px;
-  margin: 16px;
+  margin: 14px;
+  justify-items: center;
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-lighter);
   color: var(--theme-muted);
@@ -888,8 +890,8 @@ const logout = async () => {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 100%;
-  min-width: 0;
+  width: var(--app-button-height);
+  min-width: var(--app-button-height);
   height: var(--app-button-height);
   padding: 0;
   flex-shrink: 0;
@@ -919,8 +921,8 @@ const logout = async () => {
   }
 }
 .header {
-  height: 86px;
-  padding: 0 32px;
+  height: 72px;
+  padding: 0 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -940,19 +942,19 @@ const logout = async () => {
     width: auto;
     max-width: 460px;
     :deep(.el-input__wrapper) {
-      height: 42px;
-      padding: 0 14px;
-      background: var(--el-fill-color-light);
-      border-radius: 12px 0 0 12px;
-      box-shadow: none;
+      height: 36px;
+      padding: 0 12px;
+      background: var(--app-control-bg);
+      border-radius: 8px 0 0 8px;
     }
     :deep(.el-input-group__append) {
-      padding: 0 18px;
-      border: none;
+      padding: 0 12px;
+      border: 1px solid var(--el-border-color);
       box-shadow: none;
-      border-radius: 0 12px 12px 0;
-      background: var(--el-fill-color-light);
+      border-radius: 0 8px 8px 0;
+      background: var(--app-control-bg);
       color: var(--theme-muted);
+      border-left: 0;
     }
   }
   .user-actions {
@@ -999,9 +1001,9 @@ const logout = async () => {
   }
   .home-logout {
     --el-button-bg-color: transparent;
-    padding: 0 14px;
+    padding: 0 var(--app-button-padding);
     height: var(--app-button-height);
-    font-size: 12px;
+    font-size: var(--app-font-control-size);
     flex-shrink: 0;
   }
 }
@@ -1032,6 +1034,10 @@ const logout = async () => {
   min-width: 0;
 }
 @media (max-width: 1200px) {
+  .btnGroup {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    row-gap: 4px;
+  }
   .full-height {
     --home-gutter: 14px;
     gap: 14px;
@@ -1076,18 +1082,18 @@ const logout = async () => {
       grid-template-columns: minmax(0, 1fr) auto;
       flex-shrink: 0;
       width: 100% !important;
-      border-radius: 14px;
+      border-radius: var(--app-radius-panel);
       &::before {
         display: none;
       }
     }
     > .el-container {
-      border-radius: 16px;
+      border-radius: var(--app-radius-panel);
     }
     .el-main {
-      padding: 20px 16px;
+      padding: 28px;
       &::before {
-        font-size: 24px;
+        font-size: var(--app-page-title-size);
       }
     }
     .el-footer {
@@ -1156,7 +1162,8 @@ const logout = async () => {
     padding: 8px;
     h2 {
       margin-bottom: 14px;
-      font-size: 18px;
+      font-size: 16px;
+      font-weight: 600;
     }
   }
   .bottom {
@@ -1170,9 +1177,9 @@ const logout = async () => {
     --home-gutter: 8px;
     gap: 8px;
     .el-main {
-      padding: 16px 12px;
+      padding: 28px;
       &::before {
-        font-size: 22px;
+        font-size: var(--app-page-title-size);
       }
     }
     .el-footer {
@@ -1208,10 +1215,11 @@ const logout = async () => {
       width: 100%;
       :deep(.el-input__wrapper) {
         height: 36px;
-        padding: 0 10px;
+        padding: 0 12px;
       }
       :deep(.el-input-group__append) {
-        padding: 0 14px;
+        padding: 0 12px;
+        border-left: 0;
       }
     }
   }
@@ -1229,9 +1237,9 @@ const logout = async () => {
       font-size: 24px;
     }
     .el-main {
-      padding: 12px 16px;
+      padding: 28px;
       &::before {
-        font-size: 20px;
+        font-size: var(--app-page-title-size);
         margin-bottom: 4px;
       }
     }
@@ -1258,7 +1266,8 @@ const logout = async () => {
     padding: 6px;
     h2 {
       margin-bottom: 10px;
-      font-size: 17px;
+      font-size: 16px;
+      font-weight: 600;
     }
   }
   .btnGroup {

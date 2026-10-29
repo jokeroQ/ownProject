@@ -1,11 +1,11 @@
 <template>
-  <div class="series-page">
-    <div class="series-content">
-      <header class="series-header">
+  <div class="series-page app-page">
+    <div class="series-content app-page__content">
+      <header class="series-header app-page__header">
         <PageBackButton @click="goBack" />
-        <div class="series-heading">
-          <h1>最新剧集检索</h1>
-          <p>找一部好剧，留一点时间给喜欢的故事。</p>
+        <div class="series-heading app-page__heading">
+          <h1 class="app-page__title">最新剧集检索</h1>
+          <p class="app-page__description">找一部好剧，留一点时间给喜欢的故事。</p>
         </div>
         <el-tooltip content="重新加载" :trigger-keys="[]" :show-after="250"
           ><el-button
@@ -17,7 +17,7 @@
         /></el-tooltip>
       </header>
 
-      <nav class="page-tabs" aria-label="发现与个人片单">
+      <nav class="page-tabs app-tabs" aria-label="发现与个人片单">
         <button
           type="button"
           :class="{ active: view === 'discover' }"
@@ -42,8 +42,12 @@
           >重试片单</el-button
         >
       </div>
-      <section v-if="view === 'library'" class="library-controls" aria-label="个人片单筛选">
-        <nav class="library-tabs" aria-label="片单分类">
+      <section
+        v-if="view === 'library'"
+        class="library-controls app-toolbar app-panel"
+        aria-label="个人片单筛选"
+      >
+        <nav class="library-tabs app-tabs" aria-label="片单分类">
           <button
             v-for="list in libraryLists"
             :key="list.value"
@@ -63,7 +67,7 @@
             @change="chooseLibraryRegion"
           />
         </div>
-        <form class="library-search" @submit.prevent="searchLibrary">
+        <form class="library-search app-search" @submit.prevent="searchLibrary">
           <el-input
             v-model="libraryKeyword"
             :prefix-icon="Search"
@@ -82,8 +86,12 @@
           />
         </form>
       </section>
-      <section v-if="view === 'discover'" class="discovery-controls" aria-label="剧集检索筛选">
-        <form class="series-search" @submit.prevent="apply">
+      <section
+        v-if="view === 'discover'"
+        class="discovery-controls app-panel"
+        aria-label="剧集检索筛选"
+      >
+        <form class="series-search app-search" @submit.prevent="apply">
           <el-input
             v-model="filters.keyword"
             :prefix-icon="Search"
@@ -97,7 +105,7 @@
             >检索</el-button
           >
         </form>
-        <nav class="kind-tabs" aria-label="内容分类">
+        <nav class="kind-tabs app-tabs" aria-label="内容分类">
           <button
             v-for="kind in kinds"
             :key="kind.value"
@@ -191,7 +199,7 @@
           {{ loading ? '正在检索…' : `本页 ${result?.items.length || 0} 部作品`
           }}<span v-if="updatedText && !loading">更新于 {{ updatedText }}</span>
         </div>
-        <div class="sort-options" aria-label="结果排序">
+        <div class="sort-options app-tabs" aria-label="结果排序">
           <button
             v-for="sort in sorts"
             :key="sort.value"
@@ -294,7 +302,7 @@
         </div>
         <div
           v-else-if="view === 'library' && !libraryLoading && !libraryError"
-          class="series-empty"
+          class="series-empty app-empty"
         >
           <el-icon><Collection /></el-icon>
           <h2>
@@ -305,7 +313,7 @@
         </div>
         <div
           v-else-if="view === 'discover' && !loading && !error && !result?.unavailable"
-          class="series-empty"
+          class="series-empty app-empty"
         >
           <el-icon><Film /></el-icon>
           <h2>暂时没有匹配的作品</h2>
@@ -486,13 +494,15 @@
       </div>
       <template #footer
         ><el-button @click="detailVisible = false">关闭</el-button
-        ><a
+        ><el-button
           v-if="selected?.url"
           class="source-link"
+          tag="a"
+          type="primary"
           :href="selected.url"
           target="_blank"
           rel="noopener noreferrer"
-          >前往{{ selected.sourceLabel }} <el-icon><TopRight /></el-icon></a
+          >前往{{ selected.sourceLabel }} <el-icon><TopRight /></el-icon></el-button
       ></template>
     </el-dialog>
   </div>
@@ -869,104 +879,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.series-page {
-  height: var(--app-height, 100dvh);
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  padding: clamp(16px, 2.5vw, 32px);
-  color: var(--theme-text);
-}
-.series-content {
-  max-width: 1440px;
-  min-width: 0;
-  margin: 0 auto;
-}
-.series-header {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-.series-heading {
-  flex: 1;
-  min-width: 0;
-}
-h1 {
-  font-size: 25px;
-  line-height: 1.4;
-  font-weight: 700;
-  margin: 0;
-  letter-spacing: -0.6px;
-}
-.series-heading p {
-  color: var(--theme-muted);
-  margin: 4px 0 0;
-  font-size: 13px;
-}
-.series-icon.el-button {
-  width: 32px;
-  min-width: 32px;
-  height: 32px;
-  margin: 0;
-  font-size: 17px;
-}
-.page-tabs,
-.library-tabs {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-}
 .page-tabs {
   margin: 0 0 18px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
-  padding-bottom: 10px;
-}
-.page-tabs button,
-.library-tabs button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  border: 0;
-  background: transparent;
-  color: var(--theme-muted);
-  border-radius: 7px;
-  padding: 6px 10px;
-  font: inherit;
-  font-size: 13px;
-  cursor: pointer;
-}
-.page-tabs button.active,
-.library-tabs button.active {
-  background: var(--el-color-primary-light-9);
-  color: var(--el-color-primary);
-  font-weight: 600;
-}
-.page-tabs button:hover,
-.library-tabs button:hover {
-  color: var(--el-color-primary);
-}
-.page-tabs button:focus-visible,
-.library-tabs button:focus-visible {
-  outline: 2px solid var(--el-color-primary);
-  outline-offset: 2px;
-}
-.page-tabs button span,
-.library-tabs button span {
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
-  opacity: 0.8;
 }
 .library-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 14px;
   padding: 14px 16px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--theme-surface);
 }
 .library-search {
   display: flex;
@@ -1003,7 +920,7 @@ h1 {
 }
 .library-summary > span {
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .library-footer {
   color: var(--theme-muted);
@@ -1021,10 +938,7 @@ h1 {
   padding-top: 10px;
 }
 .discovery-controls {
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 16px;
   padding: 18px 20px;
-  background: var(--theme-surface);
 }
 .series-search {
   display: flex;
@@ -1036,33 +950,7 @@ h1 {
   min-width: 0;
 }
 .kind-tabs {
-  display: flex;
-  gap: 6px;
-  flex-wrap: wrap;
   margin: 16px 0;
-}
-.kind-tabs button,
-.sort-options button {
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  height: 30px;
-  padding: 0 12px;
-  font: inherit;
-  font-size: 13px;
-  color: var(--theme-muted);
-  cursor: pointer;
-  white-space: nowrap;
-}
-.kind-tabs button:hover,
-.sort-options button:hover {
-  color: var(--ui-accent-text, var(--el-color-primary));
-}
-.kind-tabs .active,
-.sort-options .active {
-  background: var(--el-color-primary-light-9);
-  color: var(--ui-accent-text, var(--el-color-primary));
-  font-weight: 600;
 }
 button:focus-visible,
 a:focus-visible {
@@ -1141,12 +1029,10 @@ a:focus-visible {
 }
 .result-count > span {
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   margin-left: 12px;
 }
 .sort-options {
-  display: flex;
-  gap: 4px;
   flex-shrink: 0;
 }
 .series-grid {
@@ -1215,7 +1101,7 @@ a:focus-visible {
   padding: 3px 6px;
   background: rgb(15 23 42 / 65%);
   color: white;
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   line-height: 1.4;
   backdrop-filter: blur(5px);
 }
@@ -1234,7 +1120,7 @@ a:focus-visible {
 }
 .score-badge.unrated {
   color: #fff;
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   font-weight: 400;
 }
 .score-badge .el-icon {
@@ -1251,10 +1137,10 @@ a:focus-visible {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  font-size: 13px;
+  font-size: var(--app-font-body-size);
   font-weight: 600;
-  height: 36px;
-  line-height: 18px;
+  height: 42px;
+  line-height: 21px;
 }
 .series-meta,
 .series-extra {
@@ -1263,11 +1149,11 @@ a:focus-visible {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   line-height: 1.5;
 }
 .series-extra {
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   opacity: 0.85;
 }
 .series-error {
@@ -1295,11 +1181,6 @@ a:focus-visible {
   font-size: 12px;
   color: var(--theme-muted);
   margin: -4px 0 16px;
-}
-.series-empty {
-  text-align: center;
-  padding: 64px 12px;
-  color: var(--theme-muted);
 }
 .series-empty > .el-icon {
   font-size: 40px;
@@ -1345,7 +1226,7 @@ a:focus-visible {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
 }
 .source-state i {
@@ -1424,7 +1305,7 @@ a:focus-visible {
   color: var(--theme-text);
 }
 .detail-rating span {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .detail-info dl {
   display: grid;
@@ -1448,20 +1329,6 @@ a:focus-visible {
   color: var(--theme-muted);
   white-space: pre-line;
 }
-.source-link {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  justify-content: center;
-  height: 32px;
-  border-radius: 8px;
-  padding: 0 12px;
-  color: #fff;
-  background: var(--el-color-primary);
-  text-decoration: none;
-  font-size: 13px;
-  margin-left: 12px;
-}
 @keyframes poster-pulse {
   to {
     opacity: 0.4;
@@ -1477,23 +1344,8 @@ a:focus-visible {
   }
 }
 @media (max-width: 600px) {
-  .series-page {
-    padding: 16px 12px;
-  }
-  .series-header {
-    gap: 8px;
-    margin-bottom: 16px;
-  }
-  h1 {
-    font-size: 21px;
-  }
-  .series-heading p {
-    font-size: 11px;
-    line-height: 1.6;
-  }
   .discovery-controls {
     padding: 12px;
-    border-radius: 12px;
   }
   .series-search {
     gap: 8px;
@@ -1502,13 +1354,7 @@ a:focus-visible {
     padding: 0 10px;
   }
   .kind-tabs {
-    gap: 3px;
     margin: 12px 0;
-  }
-  .kind-tabs button {
-    padding: 0 8px;
-    font-size: 12px;
-    height: 28px;
   }
   .filter-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1519,7 +1365,7 @@ a:focus-visible {
     gap: 5px;
   }
   .filter-field label {
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
   .platform-search {
     flex-direction: column;
@@ -1539,16 +1385,8 @@ a:focus-visible {
   .result-count > span {
     display: none;
   }
-  .sort-options {
-    gap: 0;
-  }
-  .sort-options button {
-    height: 28px;
-    padding: 0 8px;
-    font-size: 12px;
-  }
   .series-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
     gap: 14px 10px;
   }
   .series-card-body {
@@ -1556,15 +1394,9 @@ a:focus-visible {
   }
   .library-controls {
     padding: 10px;
-    gap: 10px;
   }
   .library-tabs {
-    gap: 2px;
     width: 100%;
-  }
-  .library-tabs button {
-    padding: 6px 8px;
-    font-size: 12px;
   }
   .library-search {
     width: auto;
@@ -1580,11 +1412,8 @@ a:focus-visible {
     padding-left: 8px;
     padding-right: 3px;
   }
-  .card-library-actions :deep(.watch-label) {
-    font-size: 9px;
-  }
   .series-title {
-    font-size: 13px;
+    font-size: var(--app-font-body-size);
   }
   .results-footer {
     align-items: flex-start;

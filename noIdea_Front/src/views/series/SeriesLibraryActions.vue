@@ -91,14 +91,7 @@ function command(value: string) {
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--theme-muted);
-  font-size: 10px;
-}
-.library-icon.el-button {
-  width: 28px;
-  min-width: 28px;
-  height: 28px;
-  margin: 0;
-  font-size: 16px;
+  font-size: var(--app-font-caption-size);
 }
 .library-icon.is-favorite {
   color: var(--el-color-warning);

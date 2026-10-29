@@ -7,6 +7,7 @@ const db = {
   BookmarkTemplate: require('./BookmarkTemplate'),
   UserTheme: require('./UserTheme'),
   UserPreference: require('./UserPreference'),
+  UserTodo: require('./UserTodo'),
   UserSeries: require('./UserSeries'),
   SeriesCatalog: require('./SeriesCatalog'),
   UserFlowchart: require('./UserFlowchart'),

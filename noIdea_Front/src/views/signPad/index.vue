@@ -1,77 +1,77 @@
 <template>
-  <div class="signature-page">
-    <header class="signature-header">
-      <PageBackButton @click="goBack" />
-      <div>
-        <h1>我的签名板</h1>
-        <p>用鼠标、手指或触控笔留下签名</p>
-      </div>
-    </header>
-    <main ref="workspace" class="signature-workspace">
-      <div class="signature-sheet">
-        <canvas
-          ref="signatureCanvas"
-          class="signature-canvas"
-          :style="canvasStyle"
-          data-signature-canvas
-          aria-label="签名画布，可使用鼠标、手指或触控笔书写"
-        ></canvas>
-        <footer ref="signatureControls" class="signature-controls">
-          <p class="signature-hint">在画布内书写，调整窗口或旋转屏幕会保留笔迹。</p>
-          <div class="signature-actions">
-            <el-button data-signature-clear @click="goClear">清空</el-button>
-            <el-button type="primary" data-signature-save @click="goSave">保存签名</el-button>
-            <button
-              v-if="signatureImg"
-              ref="previewButton"
-              class="signature-thumbnail"
-              data-signature-preview
-              type="button"
-              aria-label="查看签名预览"
-              @click="previewSignature"
-            >
-              <img :src="signatureImg" alt="已保存的签名缩略图" /><span>查看预览</span>
-            </button>
-          </div>
-          <p class="signature-status" role="status">{{ status }}</p>
-        </footer>
-      </div>
-    </main>
-    <Teleport to="body">
-      <div v-if="isPreview" class="signature-preview-overlay" @click.self="closePreview">
-        <section
-          ref="previewDialog"
-          class="signature-preview-dialog"
-          data-signature-preview-dialog
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="signature-preview-title"
-          tabindex="-1"
-          @keydown="onPreviewKeydown"
-        >
-          <header class="preview-header">
-            <h2 id="signature-preview-title">签名预览</h2>
-            <button
-              class="preview-close app-icon-button"
-              data-signature-preview-close
-              type="button"
-              aria-label="关闭签名预览"
-              @click="closePreview"
-            >
-              ×
-            </button>
+  <div class="signature-page app-page app-page--workspace">
+    <div class="app-page__content app-page__content--workspace">
+      <header class="signature-header app-page__header">
+        <PageBackButton @click="goBack" />
+        <div class="app-page__heading">
+          <h1 class="app-page__title">我的签名板</h1>
+          <p class="app-page__description">用鼠标、手指或触控笔留下签名</p>
+        </div>
+      </header>
+      <main ref="workspace" class="signature-workspace">
+        <div class="signature-sheet">
+          <canvas
+            ref="signatureCanvas"
+            class="signature-canvas"
+            :style="canvasStyle"
+            data-signature-canvas
+            aria-label="签名画布，可使用鼠标、手指或触控笔书写"
+          ></canvas>
+          <footer ref="signatureControls" class="signature-controls">
+            <p class="signature-hint">在画布内书写，调整窗口或旋转屏幕会保留笔迹。</p>
+            <div class="signature-actions">
+              <el-button data-signature-clear @click="goClear">清空</el-button>
+              <el-button type="primary" data-signature-save @click="goSave">保存签名</el-button>
+              <button
+                v-if="signatureImg"
+                ref="previewButton"
+                class="signature-thumbnail"
+                data-signature-preview
+                type="button"
+                aria-label="查看签名预览"
+                @click="previewSignature"
+              >
+                <img :src="signatureImg" alt="已保存的签名缩略图" /><span>查看预览</span>
+              </button>
+            </div>
+            <p class="signature-status" role="status">{{ status }}</p>
+          </footer>
+        </div>
+      </main>
+      <el-dialog
+        v-model="isPreview"
+        class="signature-preview-dialog app-dialog--custom-header"
+        data-signature-preview-dialog
+        title="签名预览"
+        width="760"
+        :show-close="false"
+        append-to-body
+        @closed="closePreview"
+      >
+        <template #header="{ titleId }">
+          <header class="preview-header app-dialog-header">
+            <h2 :id="titleId" class="app-dialog-title">签名预览</h2>
+            <el-tooltip content="关闭签名预览" :trigger-keys="[]"
+              ><el-button
+                class="preview-close app-icon-button"
+                data-signature-preview-close
+                :icon="Close"
+                aria-label="关闭签名预览"
+                @click="closePreview"
+            /></el-tooltip>
           </header>
-          <div class="preview-image"><img :src="signatureImg" alt="已保存的签名" /></div>
-          <p>点击空白处或按 Esc 关闭预览。</p>
-        </section>
-      </div>
-    </Teleport>
+        </template>
+        <div class="preview-image"><img :src="signatureImg" alt="已保存的签名" /></div>
+        <p class="signature-preview-note">点击空白处或按 Esc 关闭预览。</p>
+      </el-dialog>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import PageBackButton from '@/components/navigation/PageBackButton.vue';
+import { Close } from '@element-plus/icons-vue';
 import { useRoute, useRouter } from 'vue-router';
 import SignaturePad, { type PointGroup } from 'signature_pad';
 
@@ -82,7 +82,6 @@ const route = useRoute();
 const workspace = ref<HTMLElement | null>(null);
 const signatureControls = ref<HTMLElement | null>(null);
 const signatureCanvas = ref<HTMLCanvasElement | null>(null);
-const previewDialog = ref<HTMLElement | null>(null);
 const previewButton = ref<HTMLButtonElement | null>(null);
 const signatureImg = ref('');
 const isPreview = ref(false);
@@ -180,24 +179,12 @@ function goSave() {
   signatureImg.value = signaturePad.toDataURL();
   status.value = '签名预览已生成，点击缩略图查看';
 }
-async function previewSignature() {
+function previewSignature() {
   isPreview.value = true;
-  await nextTick();
-  previewDialog.value?.focus();
 }
 function closePreview() {
   isPreview.value = false;
   void nextTick(() => previewButton.value?.focus());
-}
-function onPreviewKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    event.preventDefault();
-    closePreview();
-  } else if (event.key === 'Tab') {
-    // The dialog has one interactive control; keep keyboard focus inside while open.
-    event.preventDefault();
-    previewDialog.value?.querySelector<HTMLButtonElement>('button')?.focus();
-  }
 }
 onMounted(() => {
   observer = new ResizeObserver(scheduleResize);
@@ -219,41 +206,6 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.signature-page {
-  --signature-gutter-x: 24px;
-  --signature-gutter-y: 24px;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
-  width: 100%;
-  max-width: 1280px;
-  height: var(--app-height, 100dvh);
-  min-width: 0;
-  min-height: 0;
-  margin: 0 auto;
-  padding: max(var(--signature-gutter-y), env(safe-area-inset-top))
-    max(var(--signature-gutter-x), env(safe-area-inset-right))
-    max(var(--signature-gutter-y), env(safe-area-inset-bottom))
-    max(var(--signature-gutter-x), env(safe-area-inset-left));
-  overflow: hidden;
-  color: var(--theme-text);
-}
-.signature-header {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 14px;
-}
-.signature-header h1 {
-  margin: 0;
-  font-size: 22px;
-}
-.signature-header p {
-  margin: 5px 0 0;
-  color: var(--theme-muted);
-  font-size: 12px;
-}
 .signature-workspace {
   display: flex;
   flex: 1;
@@ -321,13 +273,13 @@ onBeforeUnmount(() => {
   justify-content: center;
   gap: 6px;
   height: var(--app-button-height, 32px);
-  padding: 0 9px;
+  padding: 0 var(--app-button-padding);
   border: 1px solid var(--el-border-color);
   border-radius: 8px;
   background: transparent;
   color: var(--theme-text);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--app-font-control-size);
   cursor: pointer;
 }
 .signature-thumbnail:hover {
@@ -345,61 +297,6 @@ onBeforeUnmount(() => {
   border-radius: 3px;
   background: #fff;
 }
-.signature-preview-overlay {
-  --preview-gutter: 16px;
-  position: fixed;
-  inset: 0;
-  bottom: auto;
-  height: var(--app-height, 100dvh);
-  z-index: 2500;
-  box-sizing: border-box;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: max(var(--preview-gutter), env(safe-area-inset-top))
-    max(var(--preview-gutter), env(safe-area-inset-right))
-    max(var(--preview-gutter), env(safe-area-inset-bottom))
-    max(var(--preview-gutter), env(safe-area-inset-left));
-  background: rgb(0 0 0 / 55%);
-}
-.signature-preview-dialog {
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-  width: min(760px, 100%);
-  max-height: 100%;
-  overflow: auto;
-  padding: 18px;
-  border: 1px solid var(--el-border-color);
-  border-radius: 16px;
-  background: var(--el-bg-color);
-  color: var(--theme-text);
-  outline: none;
-}
-.preview-header {
-  display: flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 14px;
-}
-.preview-header h2 {
-  margin: 0;
-  font-size: 17px;
-}
-.preview-close {
-  width: var(--app-button-height);
-  height: var(--app-button-height);
-  border: 0;
-  border-radius: 8px;
-  background: transparent;
-  color: var(--theme-text);
-  font-size: 24px;
-  cursor: pointer;
-}
 .preview-image {
   min-height: 0;
   overflow: auto;
@@ -413,27 +310,13 @@ onBeforeUnmount(() => {
   max-height: calc(var(--app-height, 100dvh) - 160px);
   object-fit: contain;
 }
-.signature-preview-dialog > p {
+.signature-preview-note {
   flex-shrink: 0;
   margin: 12px 0 0;
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 @media (max-width: 600px), (max-height: 600px) {
-  .signature-page {
-    --signature-gutter-x: 12px;
-    --signature-gutter-y: 12px;
-    gap: 12px;
-  }
-  .signature-header {
-    gap: 12px;
-  }
-  .signature-header h1 {
-    font-size: 20px;
-  }
-  .signature-header p {
-    display: none;
-  }
   .signature-sheet {
     gap: 12px;
   }
@@ -445,17 +328,10 @@ onBeforeUnmount(() => {
   }
   .signature-hint,
   .signature-status {
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
 }
 @media (max-height: 450px) {
-  .signature-page {
-    --signature-gutter-y: 8px;
-    gap: 8px;
-  }
-  .signature-header h1 {
-    font-size: 18px;
-  }
   .signature-sheet {
     gap: 10px;
   }
@@ -464,13 +340,7 @@ onBeforeUnmount(() => {
   }
   .signature-hint,
   .signature-status {
-    font-size: 10px;
-  }
-  .signature-preview-overlay {
-    --preview-gutter: 10px;
-  }
-  .signature-preview-dialog {
-    padding: 12px;
+    font-size: var(--app-font-caption-size);
   }
 }
 </style>

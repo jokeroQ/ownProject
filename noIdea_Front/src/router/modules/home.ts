@@ -1,5 +1,11 @@
 export default [
   {
+    path: '/todos',
+    name: 'todoList',
+    component: () => import('@views/todos/index.vue'),
+    meta: { title: '待办清单', requiresAuth: true },
+  },
+  {
     path: '/series',
     name: 'seriesSearch',
     component: () => import('@views/series/index.vue'),

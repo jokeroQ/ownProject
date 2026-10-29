@@ -2,52 +2,86 @@
   --app-height: 100vh;
   --app-button-height: 32px;
   --app-button-padding: 12px;
+  --app-space-1: 4px;
+  --app-space-2: 8px;
+  --app-space-3: 12px;
+  --app-space-4: 16px;
+  --app-space-5: 20px;
+  --app-space-6: 24px;
+  --app-space-8: 32px;
+  --app-page-gutter-x: clamp(20px, 3vw, 40px);
+  --app-page-gutter-y: clamp(24px, 3vw, 36px);
+  --app-page-padding: var(--app-page-gutter-y) var(--app-page-gutter-x);
+  --app-content-width: 1360px;
+  --app-page-title-size: 26px;
+  --app-font-body-size: 14px;
+  --app-font-control-size: 13px;
+  --app-font-caption-size: 12px;
+  --app-stat-value-size: 32px;
+  --app-icon-size: 18px;
+  --app-radius-control: 8px;
+  --app-radius-panel: 14px;
+  --app-radius-dialog: 16px;
+  --app-shadow-panel: 0 1px 2px rgb(18 24 35 / 3%), 0 4px 20px rgb(18 24 35 / 2%);
+  --app-shadow-overlay: 0 16px 56px rgb(18 24 35 / 16%), 0 2px 8px rgb(18 24 35 / 4%);
+  --app-accent-soft: color-mix(in srgb, var(--el-color-primary) 7%, var(--el-bg-color));
+  --app-form-control-height: 40px;
+  --app-form-label-width: 72px;
+  --app-form-column-gap: 12px;
+  --app-form-font-size: 14px;
+  --app-form-line-height: 22px;
 }
 :root,
 html[data-theme='light'] {
-  --theme-page: #f3f6fb;
-  --theme-surface: rgba(255, 255, 255, 0.86);
-  --theme-muted: #64748b;
-  --theme-text: #1e293b;
+  --theme-page: #f5f6f8;
+  --theme-surface: rgba(255, 255, 255, 0.96);
+  --theme-muted: #6b7280;
+  --theme-text: #232a35;
+  --app-surface-subtle: #f8f9fb;
+  --app-control-bg: #fafbfc;
   --theme-mask-rgb: 255, 255, 255;
   --theme-overlay: 0.35;
   --theme-background-image: none;
   --el-bg-color: #fff;
-  --el-bg-color-page: #f3f6fb;
+  --el-bg-color-page: #f5f6f8;
   --el-bg-color-overlay: #fff;
-  --el-text-color-primary: #1e293b;
-  --el-text-color-regular: #334155;
-  --el-text-color-secondary: #64748b;
-  --el-text-color-placeholder: #94a3b8;
-  --el-border-color: #cbd5e1;
-  --el-border-color-light: #e2e8f0;
-  --el-border-color-lighter: #edf2f7;
-  --el-fill-color: #eef2f7;
-  --el-fill-color-light: #f1f5f9;
-  --el-fill-color-lighter: #f8fafc;
+  --el-text-color-primary: #232a35;
+  --el-text-color-regular: #46505f;
+  --el-text-color-secondary: #6b7280;
+  --el-text-color-placeholder: #929aa7;
+  --el-border-color: #dfe3e8;
+  --el-border-color-light: #e7eaee;
+  --el-border-color-lighter: #eef0f3;
+  --el-fill-color: #eef0f3;
+  --el-fill-color-light: #f3f4f6;
+  --el-fill-color-lighter: #f8f9fb;
   --el-fill-color-blank: #fff;
 }
 html[data-theme='dark'] {
   --ui-accent-text: color-mix(in srgb, var(--el-color-primary) 70%, white);
-  --theme-page: #111827;
-  --theme-surface: rgba(24, 34, 51, 0.88);
-  --theme-muted: #94a3b8;
-  --theme-text: #e2e8f0;
-  --theme-mask-rgb: 15, 23, 42;
-  --el-bg-color: #182233;
-  --el-bg-color-page: #111827;
-  --el-bg-color-overlay: #1e293b;
-  --el-text-color-primary: #e2e8f0;
-  --el-text-color-regular: #cbd5e1;
-  --el-text-color-secondary: #94a3b8;
-  --el-text-color-placeholder: #94a3b8;
-  --el-border-color: #475569;
-  --el-border-color-light: #334155;
-  --el-border-color-lighter: #293548;
-  --el-fill-color: #334155;
-  --el-fill-color-light: #293548;
-  --el-fill-color-lighter: #243044;
-  --el-fill-color-blank: #182233;
+  --theme-page: #121417;
+  --theme-surface: rgba(27, 30, 35, 0.97);
+  --theme-muted: #a6aeb9;
+  --theme-text: #e9edf2;
+  --app-surface-subtle: #20242a;
+  --app-control-bg: #22262d;
+  --app-shadow-panel: 0 1px 2px rgb(0 0 0 / 12%), 0 4px 20px rgb(0 0 0 / 8%);
+  --app-shadow-overlay: 0 16px 56px rgb(0 0 0 / 38%), 0 2px 8px rgb(0 0 0 / 18%);
+  --theme-mask-rgb: 18, 20, 23;
+  --el-bg-color: #1b1e23;
+  --el-bg-color-page: #121417;
+  --el-bg-color-overlay: #20242a;
+  --el-text-color-primary: #e9edf2;
+  --el-text-color-regular: #cbd1da;
+  --el-text-color-secondary: #a6aeb9;
+  --el-text-color-placeholder: #89929f;
+  --el-border-color: #3a414b;
+  --el-border-color-light: #30363f;
+  --el-border-color-lighter: #292f37;
+  --el-fill-color: #30363f;
+  --el-fill-color-light: #272c34;
+  --el-fill-color-lighter: #22262d;
+  --el-fill-color-blank: #1b1e23;
 }
 :root {
   --font-primary: var(--theme-text);
@@ -57,7 +91,7 @@ html[data-theme='dark'] {
   --background-main: var(--theme-page);
 }
 html[data-theme='light'] {
-  --ui-accent-text: var(--el-color-primary);
+  --ui-accent-text: color-mix(in srgb, var(--el-color-primary) 78%, #18202c);
 }
 body {
   display: block;
@@ -85,7 +119,7 @@ body {
     'PingFang SC',
     'Microsoft YaHei',
     sans-serif;
-  letter-spacing: 0.1px;
+  letter-spacing: 0;
 }
 #app {
   width: 100%;
@@ -145,8 +179,9 @@ html .el-button {
   --el-button-size: var(--app-button-height);
   height: var(--app-button-height);
   padding: 0 var(--app-button-padding);
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: var(--app-radius-control);
+  font-size: var(--app-font-control-size);
+  font-weight: 500;
   transition:
     background-color 160ms,
     border-color 160ms,
@@ -160,6 +195,23 @@ html .el-button.is-link {
   height: auto;
   padding: 0;
 }
+html .app-icon-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: var(--app-button-height);
+  min-width: var(--app-button-height);
+  height: var(--app-button-height);
+  font-size: var(--app-icon-size);
+  margin: 0;
+}
+html .app-icon-button > .el-icon,
+html .app-icon-button > svg {
+  width: var(--app-icon-size);
+  height: var(--app-icon-size);
+  font-size: var(--app-icon-size);
+}
 html .app-icon-button,
 html .el-button.app-icon-button,
 html .app-icon-button:is(:hover, :focus, :active, :disabled),
@@ -171,6 +223,7 @@ html .el-button.app-icon-button:is(:hover, :focus, :active, :disabled) {
 }
 html .el-button.app-icon-button {
   color: var(--theme-muted);
+  margin: 0;
 }
 html .el-button--primary.app-icon-button,
 html .app-icon-button:not(:disabled):hover,
@@ -194,8 +247,29 @@ html .el-overlay-message-box {
   border-radius: 12px;
   box-shadow: 0 6px 24px rgba(15, 23, 42, 0.08);
 }
-.el-input__wrapper {
-  border-radius: 10px;
+html .el-input__wrapper,
+html .el-select__wrapper,
+html .el-textarea__inner {
+  border-radius: var(--app-radius-control);
+  background-color: var(--app-control-bg);
+  box-shadow: 0 0 0 1px var(--el-border-color) inset;
+  transition:
+    box-shadow 160ms,
+    background-color 160ms;
+}
+html .el-input__wrapper.is-focus,
+html .el-select__wrapper.is-focused,
+html .el-textarea__inner:focus {
+  box-shadow:
+    0 0 0 1px var(--el-color-primary) inset,
+    0 0 0 3px color-mix(in srgb, var(--el-color-primary) 10%, transparent);
+}
+html .el-button--default:not(.is-text, .is-link, .app-icon-button) {
+  background: var(--el-fill-color-blank);
+  box-shadow: 0 1px 2px rgb(18 24 35 / 3%);
+}
+html .el-button--primary:not(.is-plain, .is-text, .is-link, .app-icon-button) {
+  box-shadow: 0 2px 4px color-mix(in srgb, var(--el-color-primary) 15%, transparent);
 }
 #global-watermark {
   position: fixed;
@@ -203,7 +277,7 @@ html .el-overlay-message-box {
   z-index: 9999;
   pointer-events: none;
   user-select: none;
-  background-color: var(--theme-text);
+  background-color: var(--theme-muted);
   mask-repeat: repeat;
   -webkit-mask-repeat: repeat;
   opacity: 0.12;
@@ -224,6 +298,16 @@ html[data-theme='dark'] #global-watermark {
   color: var(--theme-text);
 }
 @media (max-width: 600px) {
+  :root {
+    --app-page-gutter-x: 14px;
+    --app-page-gutter-y: 16px;
+    --app-page-title-size: 22px;
+    --app-stat-value-size: 28px;
+    --app-form-label-width: 64px;
+    --app-form-column-gap: 10px;
+    --app-form-font-size: 16px;
+    --app-form-line-height: 24px;
+  }
   html .el-input__inner,
   html .el-textarea__inner {
     font-size: 16px;

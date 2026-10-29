@@ -1,156 +1,168 @@
 <template>
-  <div class="theme-preview-page">
-    <header class="preview-header">
-      <PageBackButton @click="goBack" />
-      <div>
-        <h1>颜色变量测试</h1>
-        <p>查看当前主题的色彩搭配与组件效果</p>
-      </div>
-      <span class="preview-mode-badge">{{
-        themeState.settings.mode === 'dark' ? '深色主题' : '浅色主题'
-      }}</span>
-    </header>
-    <div class="preview-toolbar">
-      <div class="preview-theme-field">
-        <label for="preview-theme-mode">外观</label
-        ><el-select
-          id="preview-theme-mode"
-          class="preview-theme-select"
-          aria-label="预览主题"
-          :model-value="themeState.settings.mode"
-          :disabled="themeState.loading || saving"
-          @change="changeTheme"
-          ><el-option value="light" label="浅色" /><el-option value="dark" label="深色"
-        /></el-select>
-      </div>
-      <span class="preview-save-hint" role="status">{{
-        saving ? '正在保存…' : '切换外观后自动保存到当前账号'
-      }}</span>
-    </div>
-    <div class="preview-content">
-      <section class="palette-section" aria-labelledby="palette-title">
-        <div class="section-heading">
-          <h2 id="palette-title">对应色卡匹配</h2>
-          <span>{{ colorCount }} 个颜色变量</span>
-          <el-button :icon="Plus" :disabled="saving || themeState.loading" @click="editColor()"
-            >新增色卡</el-button
-          >
+  <div class="theme-preview-page app-page">
+    <div class="app-page__content">
+      <header class="preview-header app-page__header">
+        <PageBackButton @click="goBack" />
+        <div class="app-page__heading">
+          <h1 class="app-page__title">颜色变量测试</h1>
+          <p class="app-page__description">查看当前主题的色彩搭配与组件效果</p>
         </div>
-        <section
-          v-for="group in colorGroups"
-          :key="group.title"
-          class="color-group"
-          :aria-label="group.title"
-        >
-          <h3>{{ group.title }}</h3>
-          <div class="palette-grid">
-            <article
-              v-for="item in group.items"
-              :key="item.variable"
-              class="color-card"
-              :data-color-variable="item.variable"
+        <span class="preview-mode-badge">{{
+          themeState.settings.mode === 'dark' ? '深色主题' : '浅色主题'
+        }}</span>
+      </header>
+      <div class="preview-toolbar app-toolbar app-panel">
+        <div class="preview-theme-field">
+          <label for="preview-theme-mode">外观</label
+          ><el-select
+            id="preview-theme-mode"
+            class="preview-theme-select"
+            aria-label="预览主题"
+            :model-value="themeState.settings.mode"
+            :disabled="themeState.loading || saving"
+            @change="changeTheme"
+            ><el-option value="light" label="浅色" /><el-option value="dark" label="深色"
+          /></el-select>
+        </div>
+        <span class="preview-save-hint" role="status">{{
+          saving ? '正在保存…' : '切换外观后自动保存到当前账号'
+        }}</span>
+      </div>
+      <div class="preview-content">
+        <section class="palette-section" aria-labelledby="palette-title">
+          <div class="section-heading">
+            <h2 id="palette-title">对应色卡匹配</h2>
+            <span>{{ colorCount }} 个颜色变量</span>
+            <el-button :icon="Plus" :disabled="saving || themeState.loading" @click="editColor()"
+              >新增色卡</el-button
             >
-              <div class="color-swatch" :style="{ backgroundColor: `var(${item.variable})` }"></div>
-              <div class="color-card-content">
-                <h4>{{ item.label }}</h4>
-                <el-button
-                  class="color-edit app-icon-button"
-                  :icon="Edit"
-                  :aria-label="`编辑${item.label}`"
-                  :title="`编辑${item.label}`"
-                  :disabled="saving || themeState.loading"
-                  @click="editColor(item)"
-                />
-                <code class="variable-name">{{ item.variable }}</code
-                ><span class="color-value">{{
-                  colorValues[item.variable] || '当前外观未设置'
-                }}</span>
-              </div>
-            </article>
           </div>
+          <section
+            v-for="group in colorGroups"
+            :key="group.title"
+            class="color-group"
+            :aria-label="group.title"
+          >
+            <h3>{{ group.title }}</h3>
+            <div class="palette-grid">
+              <article
+                v-for="item in group.items"
+                :key="item.variable"
+                class="color-card app-panel"
+                :data-color-variable="item.variable"
+              >
+                <div
+                  class="color-swatch"
+                  :style="{ backgroundColor: `var(${item.variable})` }"
+                ></div>
+                <div class="color-card-content">
+                  <h4>{{ item.label }}</h4>
+                  <el-button
+                    class="color-edit app-icon-button"
+                    :icon="Edit"
+                    :aria-label="`编辑${item.label}`"
+                    :title="`编辑${item.label}`"
+                    :disabled="saving || themeState.loading"
+                    @click="editColor(item)"
+                  />
+                  <code class="variable-name">{{ item.variable }}</code
+                  ><span class="color-value">{{
+                    colorValues[item.variable] || '当前外观未设置'
+                  }}</span>
+                </div>
+              </article>
+            </div>
+          </section>
         </section>
-      </section>
-      <aside class="component-preview" aria-labelledby="component-preview-title">
-        <div class="section-heading">
-          <h2 id="component-preview-title">组件效果</h2>
-          <span class="live-dot">跟随主题</span>
-        </div>
-        <div class="example-card">
-          <span class="example-eyebrow">内容卡片</span>
-          <h3>让颜色保持一致</h3>
-          <p>正文、辅助信息和强调色会随当前主题同步变化。</p>
-          <span class="example-link">这是一段强调文字</span>
-        </div>
-        <div class="example-field">
-          <label for="preview-example-input">输入框</label
-          ><el-input id="preview-example-input" model-value="主题效果预览" readonly />
-        </div>
-        <div class="example-buttons">
-          <el-button type="primary" @click="previewFeedback('主要按钮')">主要按钮</el-button
-          ><el-button @click="previewFeedback('默认按钮')">默认按钮</el-button
-          ><el-button disabled>禁用状态</el-button>
-        </div>
-        <p class="component-note">色卡展示页面当前生效的 CSS 变量，可用于核对深浅色主题。</p>
-      </aside>
-    </div>
-    <el-dialog
-      v-model="editorOpen"
-      :title="originalVariable ? '编辑色卡' : '新增色卡'"
-      width="460"
-      :close-on-click-modal="!saving"
-      :close-on-press-escape="!saving"
-      :show-close="!saving"
-    >
-      <el-form label-width="72px" label-position="left" @submit.prevent="saveColor">
-        <el-form-item label="名称"
-          ><el-input
-            v-model="colorDraft.label"
-            maxlength="24"
-            aria-label="色卡名称"
-            :disabled="saving"
-        /></el-form-item>
-        <el-form-item label="变量名"
-          ><el-input
-            v-model="colorDraft.variable"
-            aria-label="色卡变量名"
-            :disabled="saving || isBuiltin"
-            maxlength="65"
-        /></el-form-item>
-        <el-form-item label="颜色"
-          ><div class="color-value-editor">
-            <el-color-picker
-              v-model="colorDraft.value"
-              color-format="hex"
-              :disabled="saving"
-              aria-label="选择色卡颜色"
-            /><el-input
-              v-model="colorDraft.value"
-              aria-label="色卡颜色值"
-              placeholder="#409eff"
-              maxlength="9"
-              :disabled="saving"
-            /></div
-        ></el-form-item>
-      </el-form>
-      <p class="color-editor-hint">
-        仅修改当前{{
-          themeState.settings.mode === 'dark' ? '深色' : '浅色'
-        }}外观。点击保存后生效；新增变量使用 --custom- 前缀。
-      </p>
-      <template #footer
-        ><div class="color-dialog-footer">
-          <el-button
-            v-if="originalVariable"
-            text
-            type="danger"
-            :disabled="saving"
-            @click="removeColor"
-            >{{ isBuiltin ? '恢复默认' : '删除色卡' }}</el-button
-          ><span></span><el-button :disabled="saving" @click="editorOpen = false">取消</el-button
-          ><el-button type="primary" :loading="saving" @click="saveColor">保存</el-button>
-        </div></template
+        <aside class="component-preview app-panel" aria-labelledby="component-preview-title">
+          <div class="section-heading">
+            <h2 id="component-preview-title">组件效果</h2>
+            <span class="live-dot">跟随主题</span>
+          </div>
+          <div class="example-card">
+            <span class="example-eyebrow">内容卡片</span>
+            <h3>让颜色保持一致</h3>
+            <p>正文、辅助信息和强调色会随当前主题同步变化。</p>
+            <span class="example-link">这是一段强调文字</span>
+          </div>
+          <div class="example-field app-form">
+            <div class="app-form-row">
+              <label for="preview-example-input">输入框</label
+              ><el-input id="preview-example-input" model-value="主题效果预览" readonly />
+            </div>
+          </div>
+          <div class="example-buttons">
+            <el-button type="primary" @click="previewFeedback('主要按钮')">主要按钮</el-button
+            ><el-button @click="previewFeedback('默认按钮')">默认按钮</el-button
+            ><el-button disabled>禁用状态</el-button>
+          </div>
+          <p class="component-note">色卡展示页面当前生效的 CSS 变量，可用于核对深浅色主题。</p>
+        </aside>
+      </div>
+      <el-dialog
+        v-model="editorOpen"
+        :title="originalVariable ? '编辑色卡' : '新增色卡'"
+        width="460"
+        :close-on-click-modal="!saving"
+        :close-on-press-escape="!saving"
+        :show-close="!saving"
       >
-    </el-dialog>
+        <el-form
+          class="app-form"
+          label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+          label-position="right"
+          @submit.prevent="saveColor"
+        >
+          <el-form-item label="名称"
+            ><el-input
+              v-model="colorDraft.label"
+              maxlength="24"
+              aria-label="色卡名称"
+              :disabled="saving"
+          /></el-form-item>
+          <el-form-item label="变量名"
+            ><el-input
+              v-model="colorDraft.variable"
+              aria-label="色卡变量名"
+              :disabled="saving || isBuiltin"
+              maxlength="65"
+          /></el-form-item>
+          <el-form-item label="颜色"
+            ><div class="color-value-editor">
+              <el-color-picker
+                v-model="colorDraft.value"
+                color-format="hex"
+                :disabled="saving"
+                aria-label="选择色卡颜色"
+              /><el-input
+                v-model="colorDraft.value"
+                aria-label="色卡颜色值"
+                placeholder="#409eff"
+                maxlength="9"
+                :disabled="saving"
+              /></div
+          ></el-form-item>
+        </el-form>
+        <p class="color-editor-hint">
+          仅修改当前{{
+            themeState.settings.mode === 'dark' ? '深色' : '浅色'
+          }}外观。点击保存后生效；新增变量使用 --custom- 前缀。
+        </p>
+        <template #footer
+          ><div class="color-dialog-footer">
+            <el-button
+              v-if="originalVariable"
+              text
+              type="danger"
+              :disabled="saving"
+              @click="removeColor"
+              >{{ isBuiltin ? '恢复默认' : '删除色卡' }}</el-button
+            ><span></span><el-button :disabled="saving" @click="editorOpen = false">取消</el-button
+            ><el-button type="primary" :loading="saving" @click="saveColor">保存</el-button>
+          </div></template
+        >
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -346,54 +358,17 @@ onMounted(readColors);
 </script>
 
 <style scoped>
-.theme-preview-page {
-  width: 100%;
-  max-width: 1600px;
-  min-width: 0;
-  margin: 0 auto;
-  padding: 24px;
-  color: var(--theme-text);
-}
-.preview-header {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 22px;
-}
-.preview-header > div {
-  flex: 1;
-  min-width: 0;
-}
-.preview-header h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
-}
-.preview-header p {
-  margin: 5px 0 0;
-  font-size: 12px;
-  color: var(--theme-muted);
-}
 .preview-mode-badge {
   padding: 5px 9px;
   border-radius: 6px;
   background: var(--el-color-primary-light-9);
   color: var(--ui-accent-text);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   white-space: nowrap;
 }
 .preview-toolbar {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 10px;
   margin-bottom: 24px;
   padding: 12px 16px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
-  background: var(--theme-surface);
 }
 .preview-theme-field {
   display: flex;
@@ -407,12 +382,8 @@ onMounted(readColors);
 .preview-theme-select {
   width: 140px;
 }
-.preview-theme-select :deep(.el-select__wrapper) {
-  min-height: var(--app-button-height);
-  border-radius: 8px;
-}
 .preview-save-hint {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
 }
 .preview-content {
@@ -437,7 +408,7 @@ onMounted(readColors);
   font-weight: 600;
 }
 .section-heading > span {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
 }
 .color-group {
@@ -457,9 +428,6 @@ onMounted(readColors);
 .color-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 10px;
-  background: var(--theme-surface);
 }
 .color-swatch {
   height: 68px;
@@ -485,7 +453,7 @@ onMounted(readColors);
   overflow-wrap: anywhere;
   color: var(--theme-muted);
   font-family: Consolas, monospace;
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   line-height: 1.5;
 }
 .color-value {
@@ -496,7 +464,7 @@ onMounted(readColors);
   background: var(--el-fill-color-light);
   color: var(--el-text-color-regular);
   font-family: Consolas, monospace;
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
   line-height: 1.4;
   overflow-wrap: anywhere;
 }
@@ -505,9 +473,6 @@ onMounted(readColors);
   top: 24px;
   min-width: 0;
   padding: 18px;
-  border: 1px solid var(--el-border-color-light);
-  border-radius: 12px;
-  background: var(--theme-surface);
 }
 .live-dot {
   display: inline-flex;
@@ -530,7 +495,7 @@ onMounted(readColors);
 }
 .example-eyebrow {
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .example-card h3 {
   margin: 10px 0 8px;
@@ -548,10 +513,7 @@ onMounted(readColors);
   color: var(--ui-accent-text);
 }
 .example-field {
-  display: grid;
-  gap: 8px;
   margin-top: 20px;
-  font-size: 12px;
 }
 .example-buttons {
   display: flex;
@@ -567,7 +529,7 @@ onMounted(readColors);
   padding-top: 16px;
   border-top: 1px solid var(--el-border-color-lighter);
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   line-height: 1.8;
 }
 @media (max-width: 1250px) {
@@ -576,9 +538,6 @@ onMounted(readColors);
   }
 }
 @media (max-width: 900px) {
-  .theme-preview-page {
-    padding: 16px;
-  }
   .preview-content {
     grid-template-columns: minmax(0, 1fr);
     gap: 24px;
@@ -591,19 +550,6 @@ onMounted(readColors);
   }
 }
 @media (max-width: 600px) {
-  .theme-preview-page {
-    padding: 12px;
-  }
-  .preview-header {
-    gap: 10px;
-    margin-bottom: 16px;
-  }
-  .preview-header h1 {
-    font-size: 18px;
-  }
-  .preview-header p {
-    display: none;
-  }
   .preview-toolbar {
     margin-bottom: 18px;
     padding: 10px 12px;
@@ -612,7 +558,7 @@ onMounted(readColors);
     width: 120px;
   }
   .preview-save-hint {
-    font-size: 10px;
+    font-size: var(--app-font-caption-size);
   }
   .palette-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -632,8 +578,6 @@ onMounted(readColors);
   position: absolute;
   top: 4px;
   right: 4px;
-  width: 26px;
-  height: 26px;
 }
 .color-value-editor {
   display: flex;

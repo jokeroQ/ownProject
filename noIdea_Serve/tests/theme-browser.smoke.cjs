@@ -158,12 +158,13 @@ async function main() {
     await page.waitForFunction(id => document.querySelector(`.el-menu-item[data-category="${id}"]`)?.classList.contains('is-active'), String(initialMenus[0].id));
     await page.mouse.wheel(0, 10000);
     await page.waitForFunction(id => document.querySelector(`.el-menu-item[data-category="${id}"]`)?.classList.contains('is-active'), lastCategory);
+    await page.waitForURL(target => target.searchParams.get('category') === lastCategory);
     await page.reload();
     await page.waitForFunction(id => document.querySelector(`.el-menu-item[data-category="${id}"]`)?.classList.contains('is-active'), lastCategory);
     const empty = await menuRequest('POST', '/menu/addMenus', { title: 'empty-drop-target' });
     await page.reload();
     await page.locator('[data-section]').first().waitFor();
-    await page.locator('.btnGroup svg').nth(1).click();
+    await page.locator('[data-home-edit-mode]').click();
     const firstId = initialMenus[0].id;
     await page.locator(`[data-category="${firstId}"]`).click();
     await page.waitForTimeout(700);
@@ -200,7 +201,7 @@ async function main() {
       await page.locator(`[data-section="${signMenu.id}"] .draggable-item`).filter({ hasText: signBookmark.title }).click();
       await page.waitForURL(target => target.pathname === '/signPad');
       assert.equal(new URL(page.url()).searchParams.get('fromCategory'), String(signMenu.id));
-      await page.locator('.signPad .el-button').first().click();
+      await page.getByRole('button', { name: '返回收藏', exact: true }).click();
       await page.waitForURL(target => target.pathname === '/home' && target.searchParams.get('category') === String(signMenu.id));
       await page.waitForFunction(id => document.querySelector(`.el-menu-item[data-category="${id}"]`)?.classList.contains('is-active'), String(signMenu.id));
     }
@@ -284,6 +285,7 @@ async function main() {
     await page.locator('[data-node]').first().waitFor();
     assert.equal(await page.locator('[data-node]').count(), 5);
     await page.locator('[data-node="start"]').click();
+    if (!await page.locator('#flow-label').isVisible()) await page.locator('[data-flow-inspector-toggle]').click();
     await page.locator('#flow-label').waitFor();
     await page.getByRole('button', { name: '+ 判断', exact: true }).click();
     await page.getByRole('button', { name: '返回收藏', exact: true }).click();
@@ -321,11 +323,11 @@ async function main() {
     await page.waitForFunction(() => document.documentElement.dataset.theme === 'dark' && document.documentElement.dataset.hasBackground === 'true');
     const darkWatermark = await assertWatermark('cara');
     assert.notEqual(darkWatermark.color, lightWatermark.color);
-    assert.equal(darkWatermark.color, 'rgb(226, 232, 240)');
+    assert.equal(darkWatermark.color, 'rgb(166, 174, 185)');
     assert.equal(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--el-color-primary').trim()), '#7c3aed');
     const sidebarStyle = await page.locator('.el-aside').evaluate(element => ({ color: getComputedStyle(element).color, background: getComputedStyle(element).backgroundColor }));
-    assert.equal(sidebarStyle.color, 'rgb(226, 232, 240)');
-    assert.equal(sidebarStyle.background, 'rgba(24, 34, 51, 0.88)');
+    assert.equal(sidebarStyle.color, 'rgb(233, 237, 242)');
+    assert.equal(sidebarStyle.background, 'rgba(27, 30, 35, 0.97)');
     assert.equal(await page.locator('.full-height').evaluate(element => Math.round(element.getBoundingClientRect().height)), 900);
     if (process.env.THEME_SCREENSHOT) await page.screenshot({ path: process.env.THEME_SCREENSHOT, fullPage: true });
     await page.goto(url + '/chat');
@@ -350,7 +352,7 @@ async function main() {
     const bobMenusResponse = await fetch(api + '/menu/getMenus', { headers: { Authorization: `Bearer ${bobToken}` } });
     const bobMenus = (await bobMenusResponse.json()).data;
     assert.ok(bobMenus.every(menu => !menu.can_edit && !menu.can_delete && menu.menuLists.every(item => !item.can_edit)));
-    await page.locator('.btnGroup svg').nth(1).click();
+    await page.locator('[data-home-edit-mode]').click();
     assert.equal(await page.locator('.el-aside .edit').count(), 0);
     assert.equal(await page.locator('.draggable-item[draggable=true]').count(), 0);
     await page.locator(`[data-category="${bobMenus[0].id}"]`).click();

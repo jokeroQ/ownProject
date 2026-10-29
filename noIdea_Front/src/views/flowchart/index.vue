@@ -1,335 +1,351 @@
 <template>
-  <div class="flow-page">
-    <header class="flow-header">
-      <PageBackButton @click="goBack" />
-      <div class="flow-heading">
-        <h1>我的流程图</h1>
-        <p>把想法连成清晰的步骤</p>
+  <div class="flow-page app-page app-page--workspace">
+    <div class="app-page__content app-page__content--workspace">
+      <header class="flow-header app-page__header">
+        <PageBackButton @click="goBack" />
+        <div class="flow-heading app-page__heading">
+          <h1 class="app-page__title">我的流程图</h1>
+          <p class="app-page__description">把想法连成清晰的步骤</p>
+        </div>
+        <span
+          class="save-state"
+          :class="{ 'is-dirty': dirty, 'is-error': loadError }"
+          role="status"
+          >{{
+            loading
+              ? '正在加载'
+              : loadError
+                ? '未连接到账户'
+                : dirty
+                  ? '有未保存的修改'
+                  : '已与账户同步'
+          }}</span
+        >
+        <el-button
+          class="save-button"
+          type="primary"
+          :icon="Check"
+          :loading="saving"
+          :disabled="loading || !!loadError"
+          @click="save"
+          >保存流程图</el-button
+        >
+      </header>
+      <div v-if="loading" class="flow-message app-empty">正在加载你的流程图…</div>
+      <div v-else-if="loadError" class="flow-message">
+        <p>{{ loadError }}</p>
+        <el-button @click="load">重新加载</el-button>
       </div>
-      <span
-        class="save-state"
-        :class="{ 'is-dirty': dirty, 'is-error': loadError }"
-        role="status"
-        >{{
-          loading
-            ? '正在加载'
-            : loadError
-              ? '未连接到账户'
-              : dirty
-                ? '有未保存的修改'
-                : '已与账户同步'
-        }}</span
-      >
-      <el-button
-        class="save-button"
-        type="primary"
-        :icon="Check"
-        :loading="saving"
-        :disabled="loading || !!loadError"
-        @click="save"
-        >保存流程图</el-button
-      >
-    </header>
-    <div v-if="loading" class="flow-message">正在加载你的流程图…</div>
-    <div v-else-if="loadError" class="flow-message">
-      <p>{{ loadError }}</p>
-      <el-button @click="load">重新加载</el-button>
-    </div>
-    <template v-else>
-      <div class="flow-toolbar" role="toolbar" aria-label="流程图工具栏">
-        <div class="toolbar-group" role="group" aria-label="添加节点">
-          <el-button
-            v-for="item in nodeTypes"
-            :key="item.type"
-            :icon="Plus"
-            :aria-label="`+ ${item.label}`"
-            @click="addNode(item.type)"
-          >
-            {{ item.label }}
-          </el-button>
-        </div>
-        <div class="toolbar-group" role="group" aria-label="编辑工具">
-          <el-tooltip
-            :content="connecting ? '取消连线' : '连线'"
-            :show-after="250"
-            :trigger-keys="[]"
-          >
+      <template v-else>
+        <div class="flow-toolbar app-panel" role="toolbar" aria-label="流程图工具栏">
+          <div class="toolbar-group" role="group" aria-label="添加节点">
             <el-button
-              class="flow-icon-button app-icon-button"
-              :type="connecting ? 'primary' : 'default'"
-              :icon="Connection"
-              :aria-label="connecting ? '取消连线' : '连线'"
-              :aria-pressed="connecting"
-              @click="toggleConnection"
-            />
-          </el-tooltip>
-          <el-tooltip content="撤销" :show-after="250" :trigger-keys="[]">
-            <span class="icon-tooltip-target"
-              ><el-button
-                class="flow-icon-button app-icon-button"
-                :icon="RefreshLeft"
-                aria-label="撤销"
-                :disabled="!past.length"
-                @click="undo"
-            /></span>
-          </el-tooltip>
-          <el-tooltip content="重做" :show-after="250" :trigger-keys="[]">
-            <span class="icon-tooltip-target"
-              ><el-button
-                class="flow-icon-button app-icon-button"
-                :icon="RefreshRight"
-                aria-label="重做"
-                :disabled="!future.length"
-                @click="redo"
-            /></span>
-          </el-tooltip>
-        </div>
-        <div class="toolbar-group view-tools" role="group" aria-label="画布视图">
-          <label class="zoom-control" for="flow-zoom">缩放</label>
-          <el-select
-            id="flow-zoom"
-            v-model="zoom"
-            class="zoom-select"
-            aria-label="画布缩放"
-            @change="onZoomChange"
-          >
-            <el-option value="fit" label="适应容器" />
-            <el-option
-              v-for="value in [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]"
-              :key="value"
-              :value="value"
-              :label="`${value * 100}%`"
-            />
-          </el-select>
-          <el-tooltip content="适应容器" :show-after="250" :trigger-keys="[]">
-            <el-button
-              class="flow-icon-button app-icon-button"
-              :icon="FullScreen"
-              aria-label="适应容器"
-              :aria-pressed="zoom === 'fit'"
-              @click="fitCanvas"
-            />
-          </el-tooltip>
-        </div>
-        <div class="toolbar-group file-tools" role="group" aria-label="导入与导出">
-          <el-button :icon="Download" @click="exportSvg">导出 SVG</el-button>
-          <el-button :icon="Document" @click="exportJson">备份 JSON</el-button>
-          <el-button :icon="Upload" @click="fileInput?.click()">导入 JSON</el-button>
-        </div>
-        <div class="toolbar-group inspector-tools">
-          <el-tooltip
-            :content="inspectorOpen ? '收起属性' : '属性 / 说明'"
-            :show-after="250"
-            :trigger-keys="[]"
-          >
-            <span class="icon-tooltip-target">
-              <el-button
-                class="flow-inspector-toggle flow-icon-button app-icon-button"
-                data-flow-inspector-toggle
-                :icon="Setting"
-                :type="inspectorOpen ? 'primary' : 'default'"
-                :aria-label="inspectorOpen ? '收起属性' : '属性 / 说明'"
-                :aria-expanded="inspectorOpen"
-                aria-controls="flow-inspector"
-                @click="inspectorOpen = !inspectorOpen"
-              />
-            </span>
-          </el-tooltip>
-        </div>
-        <input
-          ref="fileInput"
-          type="file"
-          accept=".json,application/json"
-          hidden
-          @change="importJson"
-        />
-      </div>
-      <p class="flow-hint" role="status">
-        {{
-          connecting
-            ? connectionStart
-              ? '再点击目标节点，完成连线。'
-              : '点击起点节点，再点击终点节点。'
-            : '拖动节点调整位置；点击节点或连线编辑文字。修改后请点击保存。'
-        }}
-      </p>
-      <div class="flow-workspace">
-        <div ref="canvasScroll" class="canvas-scroll">
-          <div class="canvas-stage" :class="{ 'is-fit': zoom === 'fit' }" :style="canvasStageStyle">
-            <svg
-              ref="canvas"
-              class="flow-canvas"
-              xmlns="http://www.w3.org/2000/svg"
-              :viewBox="canvasViewBox"
-              :width="zoom === 'fit' ? '100%' : 1600 * zoom"
-              :height="zoom === 'fit' ? '100%' : 1000 * zoom"
-              preserveAspectRatio="xMidYMid meet"
-              aria-label="流程图画布"
-              font-family="sans-serif"
-              @pointermove="moveNode"
-              @pointerup="endDrag"
-              @pointercancel="endDrag"
-              @lostpointercapture="endDrag"
+              v-for="item in nodeTypes"
+              :key="item.type"
+              :icon="Plus"
+              :aria-label="`+ ${item.label}`"
+              @click="addNode(item.type)"
             >
-              <title>我的流程图</title>
-              <defs>
-                <marker
-                  id="flow-arrow"
-                  viewBox="0 0 10 10"
-                  refX="9"
-                  refY="5"
-                  markerWidth="8"
-                  markerHeight="8"
-                  orient="auto-start-reverse"
-                >
-                  <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
-                </marker>
-              </defs>
-              <rect
-                class="canvas-background"
-                width="1600"
-                height="1000"
-                fill="#f8fafc"
-                @click="selected = ''"
+              {{ item.label }}
+            </el-button>
+          </div>
+          <div class="toolbar-group" role="group" aria-label="编辑工具">
+            <el-tooltip
+              :content="connecting ? '取消连线' : '连线'"
+              :show-after="250"
+              :trigger-keys="[]"
+            >
+              <el-button
+                class="flow-icon-button app-icon-button"
+                :type="connecting ? 'primary' : 'default'"
+                :icon="Connection"
+                :aria-label="connecting ? '取消连线' : '连线'"
+                :aria-pressed="connecting"
+                @click="toggleConnection"
               />
-              <g
-                v-for="edge in document.edges"
-                :key="edge.id"
-                :data-edge="edge.id"
-                class="flow-edge"
-                :class="{ 'is-selected': selected === edge.id }"
-                tabindex="0"
-                role="button"
-                :aria-label="`连线 ${edge.label || '未命名'}`"
-                @click.stop="selectEdge(edge.id)"
-                @keydown.enter.prevent="selectEdge(edge.id)"
-              >
-                <path
-                  :d="edgeGeometry(edge, document.nodes).path"
-                  fill="none"
-                  stroke="transparent"
-                  stroke-width="18"
-                />
-                <path
-                  class="edge-line"
-                  :d="edgeGeometry(edge, document.nodes).path"
-                  fill="none"
-                  :stroke="selected === edge.id ? '#2563eb' : '#64748b'"
-                  stroke-width="2.5"
-                  marker-end="url(#flow-arrow)"
-                />
-                <text
-                  class="edge-label"
-                  :x="edgeGeometry(edge, document.nodes).x"
-                  :y="edgeGeometry(edge, document.nodes).y"
-                  fill="#475569"
-                  font-size="14"
-                >
-                  {{ edge.label }}
-                </text>
-              </g>
-              <g
-                v-for="node in document.nodes"
-                :key="node.id"
-                :data-node="node.id"
-                :transform="`translate(${node.x},${node.y})`"
-                tabindex="0"
-                role="button"
-                :aria-label="`节点 ${node.label}`"
-                class="flow-node"
-                :class="[
-                  `flow-node--${node.type}`,
-                  { 'is-selected': selected === node.id || connectionStart === node.id },
-                ]"
-                @pointerdown.stop="beginDrag($event, node)"
-                @click.stop="selectNode(node.id)"
-                @keydown.enter.prevent="selectNode(node.id)"
-              >
-                <title>{{ node.label }}</title>
-                <polygon
-                  v-if="node.type === 'decision'"
-                  class="node-shape"
-                  points="0,-50 80,0 0,50 -80,0"
-                  fill="#fef3c7"
-                  :stroke="nodeStroke(node.id)"
-                  stroke-width="2"
-                />
-                <rect
-                  v-else
-                  class="node-shape"
-                  x="-80"
-                  y="-30"
-                  width="160"
-                  height="60"
-                  :rx="node.type === 'process' ? 10 : 30"
-                  :fill="
-                    node.type === 'start' ? '#dcfce7' : node.type === 'end' ? '#fee2e2' : '#eff6ff'
-                  "
-                  :stroke="nodeStroke(node.id)"
-                  stroke-width="2"
-                />
-                <text
-                  class="node-label"
-                  fill="#1e293b"
-                  text-anchor="middle"
-                  font-size="14"
-                  font-family="sans-serif"
-                  pointer-events="none"
-                >
-                  <tspan
-                    v-for="(line, index) in labelLines(node.label)"
-                    :key="index"
-                    x="0"
-                    :y="(index - (labelLines(node.label).length - 1) / 2) * 17 + 5"
-                  >
-                    {{ line }}
-                  </tspan>
-                </text>
-              </g>
-            </svg>
+            </el-tooltip>
+            <el-tooltip content="撤销" :show-after="250" :trigger-keys="[]">
+              <span class="icon-tooltip-target"
+                ><el-button
+                  class="flow-icon-button app-icon-button"
+                  :icon="RefreshLeft"
+                  aria-label="撤销"
+                  :disabled="!past.length"
+                  @click="undo"
+              /></span>
+            </el-tooltip>
+            <el-tooltip content="重做" :show-after="250" :trigger-keys="[]">
+              <span class="icon-tooltip-target"
+                ><el-button
+                  class="flow-icon-button app-icon-button"
+                  :icon="RefreshRight"
+                  aria-label="重做"
+                  :disabled="!future.length"
+                  @click="redo"
+              /></span>
+            </el-tooltip>
           </div>
+          <div class="toolbar-group view-tools" role="group" aria-label="画布视图">
+            <label class="zoom-control" for="flow-zoom">缩放</label>
+            <el-select
+              id="flow-zoom"
+              v-model="zoom"
+              class="zoom-select"
+              aria-label="画布缩放"
+              @change="onZoomChange"
+            >
+              <el-option value="fit" label="适应容器" />
+              <el-option
+                v-for="value in [0.25, 0.5, 0.75, 1, 1.25, 1.5, 2]"
+                :key="value"
+                :value="value"
+                :label="`${value * 100}%`"
+              />
+            </el-select>
+            <el-tooltip content="适应容器" :show-after="250" :trigger-keys="[]">
+              <el-button
+                class="flow-icon-button app-icon-button"
+                :icon="FullScreen"
+                aria-label="适应容器"
+                :aria-pressed="zoom === 'fit'"
+                @click="fitCanvas"
+              />
+            </el-tooltip>
+          </div>
+          <div class="toolbar-group file-tools" role="group" aria-label="导入与导出">
+            <el-button :icon="Download" @click="exportSvg">导出 SVG</el-button>
+            <el-button :icon="Document" @click="exportJson">备份 JSON</el-button>
+            <el-button :icon="Upload" @click="fileInput?.click()">导入 JSON</el-button>
+          </div>
+          <div class="toolbar-group inspector-tools">
+            <el-tooltip
+              :content="inspectorOpen ? '收起属性' : '属性 / 说明'"
+              :show-after="250"
+              :trigger-keys="[]"
+            >
+              <span class="icon-tooltip-target">
+                <el-button
+                  class="flow-inspector-toggle flow-icon-button app-icon-button"
+                  data-flow-inspector-toggle
+                  :icon="Setting"
+                  :type="inspectorOpen ? 'primary' : 'default'"
+                  :aria-label="inspectorOpen ? '收起属性' : '属性 / 说明'"
+                  :aria-expanded="inspectorOpen"
+                  aria-controls="flow-inspector"
+                  @click="inspectorOpen = !inspectorOpen"
+                />
+              </span>
+            </el-tooltip>
+          </div>
+          <input
+            ref="fileInput"
+            type="file"
+            accept=".json,application/json"
+            hidden
+            @change="importJson"
+          />
         </div>
-        <aside id="flow-inspector" class="flow-inspector" :class="{ 'is-open': inspectorOpen }">
-          <div class="inspector-heading">
-            <h2>{{ selectedNode ? '节点设置' : selectedEdge ? '连线设置' : '使用说明' }}</h2>
-            <el-button
-              class="inspector-close flow-icon-button app-icon-button"
-              data-flow-inspector-close
-              :icon="Close"
-              aria-label="收起属性面板"
-              @click="inspectorOpen = false"
-            />
+        <p class="flow-hint" role="status">
+          {{
+            connecting
+              ? connectionStart
+                ? '再点击目标节点，完成连线。'
+                : '点击起点节点，再点击终点节点。'
+              : '拖动节点调整位置；点击节点或连线编辑文字。修改后请点击保存。'
+          }}
+        </p>
+        <div class="flow-workspace">
+          <div ref="canvasScroll" class="canvas-scroll">
+            <div
+              class="canvas-stage"
+              :class="{ 'is-fit': zoom === 'fit' }"
+              :style="canvasStageStyle"
+            >
+              <svg
+                ref="canvas"
+                class="flow-canvas"
+                xmlns="http://www.w3.org/2000/svg"
+                :viewBox="canvasViewBox"
+                :width="zoom === 'fit' ? '100%' : 1600 * zoom"
+                :height="zoom === 'fit' ? '100%' : 1000 * zoom"
+                preserveAspectRatio="xMidYMid meet"
+                aria-label="流程图画布"
+                font-family="sans-serif"
+                @pointermove="moveNode"
+                @pointerup="endDrag"
+                @pointercancel="endDrag"
+                @lostpointercapture="endDrag"
+              >
+                <title>我的流程图</title>
+                <defs>
+                  <marker
+                    id="flow-arrow"
+                    viewBox="0 0 10 10"
+                    refX="9"
+                    refY="5"
+                    markerWidth="8"
+                    markerHeight="8"
+                    orient="auto-start-reverse"
+                  >
+                    <path d="M 0 0 L 10 5 L 0 10 z" fill="#64748b" />
+                  </marker>
+                </defs>
+                <rect
+                  class="canvas-background"
+                  width="1600"
+                  height="1000"
+                  fill="#f8fafc"
+                  @click="selected = ''"
+                />
+                <g
+                  v-for="edge in document.edges"
+                  :key="edge.id"
+                  :data-edge="edge.id"
+                  class="flow-edge"
+                  :class="{ 'is-selected': selected === edge.id }"
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`连线 ${edge.label || '未命名'}`"
+                  @click.stop="selectEdge(edge.id)"
+                  @keydown.enter.prevent="selectEdge(edge.id)"
+                >
+                  <path
+                    :d="edgeGeometry(edge, document.nodes).path"
+                    fill="none"
+                    stroke="transparent"
+                    stroke-width="18"
+                  />
+                  <path
+                    class="edge-line"
+                    :d="edgeGeometry(edge, document.nodes).path"
+                    fill="none"
+                    :stroke="selected === edge.id ? '#2563eb' : '#64748b'"
+                    stroke-width="2.5"
+                    marker-end="url(#flow-arrow)"
+                  />
+                  <text
+                    class="edge-label"
+                    :x="edgeGeometry(edge, document.nodes).x"
+                    :y="edgeGeometry(edge, document.nodes).y"
+                    fill="#475569"
+                    font-size="14"
+                  >
+                    {{ edge.label }}
+                  </text>
+                </g>
+                <g
+                  v-for="node in document.nodes"
+                  :key="node.id"
+                  :data-node="node.id"
+                  :transform="`translate(${node.x},${node.y})`"
+                  tabindex="0"
+                  role="button"
+                  :aria-label="`节点 ${node.label}`"
+                  class="flow-node"
+                  :class="[
+                    `flow-node--${node.type}`,
+                    { 'is-selected': selected === node.id || connectionStart === node.id },
+                  ]"
+                  @pointerdown.stop="beginDrag($event, node)"
+                  @click.stop="selectNode(node.id)"
+                  @keydown.enter.prevent="selectNode(node.id)"
+                >
+                  <title>{{ node.label }}</title>
+                  <polygon
+                    v-if="node.type === 'decision'"
+                    class="node-shape"
+                    points="0,-50 80,0 0,50 -80,0"
+                    fill="#fef3c7"
+                    :stroke="nodeStroke(node.id)"
+                    stroke-width="2"
+                  />
+                  <rect
+                    v-else
+                    class="node-shape"
+                    x="-80"
+                    y="-30"
+                    width="160"
+                    height="60"
+                    :rx="node.type === 'process' ? 10 : 30"
+                    :fill="
+                      node.type === 'start'
+                        ? '#dcfce7'
+                        : node.type === 'end'
+                          ? '#fee2e2'
+                          : '#eff6ff'
+                    "
+                    :stroke="nodeStroke(node.id)"
+                    stroke-width="2"
+                  />
+                  <text
+                    class="node-label"
+                    fill="#1e293b"
+                    text-anchor="middle"
+                    font-size="14"
+                    font-family="sans-serif"
+                    pointer-events="none"
+                  >
+                    <tspan
+                      v-for="(line, index) in labelLines(node.label)"
+                      :key="index"
+                      x="0"
+                      :y="(index - (labelLines(node.label).length - 1) / 2) * 17 + 5"
+                    >
+                      {{ line }}
+                    </tspan>
+                  </text>
+                </g>
+              </svg>
+            </div>
           </div>
-          <template v-if="selectedNode || selectedEdge">
-            <label for="flow-label">{{
-              selectedNode ? '节点文字' : '连线文字（例如：是 / 否）'
-            }}</label>
-            <el-input
-              id="flow-label"
-              :model-value="selectedNode?.label ?? selectedEdge?.label"
-              type="textarea"
-              :rows="3"
-              maxlength="64"
-              show-word-limit
-              @input="updateLabel"
-              @blur="labelEditId = ''"
-            />
-            <p v-if="selectedNode">可以从工具栏开启连线，然后依次点击两个节点。</p>
-            <el-button type="danger" plain @click="removeSelected">{{
-              selectedNode ? '删除节点' : '删除连线'
-            }}</el-button>
-          </template>
-          <template v-else
-            ><p>绿色代表开始，蓝色代表步骤，菱形代表判断，红色代表结束。</p>
-            <p>判断节点可以连接多条分支；选中连线后填写“是”“否”等说明。</p>
-            <p>流程图保存在你的账户下。SVG 可用作图片，JSON 可备份并重新导入。</p></template
+          <aside
+            id="flow-inspector"
+            class="flow-inspector app-panel"
+            :class="{ 'is-open': inspectorOpen }"
           >
-          <div class="flow-count">
-            {{ document.nodes.length }} / 100 个节点 · {{ document.edges.length }} / 200 条连线
-          </div>
-        </aside>
-      </div>
-    </template>
+            <div class="inspector-heading">
+              <h2>{{ selectedNode ? '节点设置' : selectedEdge ? '连线设置' : '使用说明' }}</h2>
+              <el-button
+                class="inspector-close flow-icon-button app-icon-button"
+                data-flow-inspector-close
+                :icon="Close"
+                aria-label="收起属性面板"
+                @click="inspectorOpen = false"
+              />
+            </div>
+            <template v-if="selectedNode || selectedEdge">
+              <div class="app-form">
+                <div class="app-form-row">
+                  <label for="flow-label">{{ selectedNode ? '节点文字' : '连线文字' }}</label>
+                  <el-input
+                    id="flow-label"
+                    :model-value="selectedNode?.label ?? selectedEdge?.label"
+                    type="textarea"
+                    :rows="3"
+                    maxlength="64"
+                    show-word-limit
+                    @input="updateLabel"
+                    @blur="labelEditId = ''"
+                  />
+                </div>
+              </div>
+              <p v-if="selectedNode">可以从工具栏开启连线，然后依次点击两个节点。</p>
+              <el-button type="danger" plain @click="removeSelected">{{
+                selectedNode ? '删除节点' : '删除连线'
+              }}</el-button>
+            </template>
+            <template v-else
+              ><p>绿色代表开始，蓝色代表步骤，菱形代表判断，红色代表结束。</p>
+              <p>判断节点可以连接多条分支；选中连线后填写“是”“否”等说明。</p>
+              <p>流程图保存在你的账户下。SVG 可用作图片，JSON 可备份并重新导入。</p></template
+            >
+            <div class="flow-count">
+              {{ document.nodes.length }} / 100 个节点 · {{ document.edges.length }} / 200 条连线
+            </div>
+          </aside>
+        </div>
+      </template>
+    </div>
   </div>
 </template>
 
@@ -696,53 +712,12 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped lang="less">
-.flow-page {
-  --tool-gutter: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  width: 100%;
-  min-width: 0;
-  min-height: 0;
-  height: var(--app-height, 100dvh);
-  padding: max(var(--tool-gutter), env(safe-area-inset-top))
-    max(var(--tool-gutter), env(safe-area-inset-right))
-    max(var(--tool-gutter), env(safe-area-inset-bottom))
-    max(var(--tool-gutter), env(safe-area-inset-left));
-  color: var(--theme-text);
-  overflow: hidden;
-}
 .flow-header {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto auto;
-  flex-shrink: 0;
-  align-items: center;
-  gap: 16px;
-}
-.flow-heading {
-  min-width: 0;
-}
-.flow-heading h1 {
-  margin: 0;
-  font-size: 22px;
-  font-weight: 600;
-  letter-spacing: -0.5px;
-}
-.flow-heading p {
-  margin: 4px 0 0;
-  color: var(--theme-muted);
-  font-size: 12px;
 }
 .flow-header .el-button {
   margin: 0;
-}
-.flow-icon-button {
-  flex-shrink: 0;
-  width: var(--app-button-height);
-  height: var(--app-button-height);
-}
-.flow-icon-button :deep(.el-icon) {
-  font-size: 16px;
 }
 .icon-tooltip-target {
   display: inline-flex;
@@ -777,9 +752,6 @@ onBeforeUnmount(() => {
   gap: 8px 12px;
   min-width: 0;
   padding: 10px 12px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--theme-surface);
 }
 .toolbar-group {
   display: flex;
@@ -805,10 +777,6 @@ onBeforeUnmount(() => {
 }
 .zoom-select {
   width: 112px;
-}
-.zoom-select :deep(.el-select__wrapper) {
-  min-height: var(--app-button-height);
-  border-radius: 8px;
 }
 .flow-hint {
   flex-shrink: 0;
@@ -920,9 +888,6 @@ onBeforeUnmount(() => {
   min-height: 0;
   padding: 16px;
   overflow-y: auto;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
-  background: var(--theme-surface);
   scrollbar-width: none;
 }
 .flow-inspector::-webkit-scrollbar {
@@ -944,21 +909,11 @@ onBeforeUnmount(() => {
   font-size: 15px;
   font-weight: 600;
 }
-.flow-inspector label {
-  margin-bottom: 8px;
-  font-size: 13px;
-}
 .flow-inspector p {
   margin: 0 0 12px;
   color: var(--theme-muted);
   font-size: 12px;
   line-height: 1.8;
-}
-.flow-inspector :deep(.el-textarea__inner) {
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 13px;
-  line-height: 1.6;
 }
 .flow-inspector > .el-button {
   align-self: flex-start;
@@ -970,25 +925,12 @@ onBeforeUnmount(() => {
   padding-top: 12px;
   border-top: 1px solid var(--el-border-color-light);
   color: var(--theme-muted);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .flow-message {
-  padding: 60px 20px;
   overflow: auto;
-  text-align: center;
-  color: var(--theme-muted);
 }
 @media (max-width: 800px), (max-height: 600px) {
-  .flow-page {
-    --tool-gutter: 10px;
-    gap: 8px;
-  }
-  .flow-header {
-    gap: 10px;
-  }
-  .flow-heading h1 {
-    font-size: 20px;
-  }
   .flow-heading p {
     display: none;
   }
@@ -1007,7 +949,7 @@ onBeforeUnmount(() => {
     padding-left: 10px;
   }
   .flow-hint {
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
     line-height: 18px;
   }
   .flow-inspector {
@@ -1016,14 +958,12 @@ onBeforeUnmount(() => {
     z-index: 2;
     width: min(290px, 100%);
     padding: 12px;
-    background: var(--el-bg-color-overlay);
     box-shadow: -8px 0 24px rgb(0 0 0 / 12%);
   }
 }
 @media (max-width: 600px) {
   .flow-header {
     grid-template-columns: 32px minmax(0, 1fr) auto;
-    gap: 2px 10px;
   }
   .flow-header > .flow-icon-button,
   .save-button {
@@ -1032,13 +972,10 @@ onBeforeUnmount(() => {
   .save-button {
     grid-column: 3;
   }
-  .flow-heading h1 {
-    font-size: 18px;
-  }
   .save-state {
     grid-column: 2;
     grid-row: 2;
-    font-size: 10px;
+    font-size: var(--app-font-caption-size);
   }
 }
 </style>

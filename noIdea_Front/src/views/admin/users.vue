@@ -1,369 +1,361 @@
 <template>
-  <div class="admin-users-page">
-    <header class="admin-header">
-      <el-tooltip content="返回首页" placement="bottom" :show-after="250" :trigger-keys="[]">
-        <el-button
-          class="admin-icon-button app-icon-button"
-          :icon="Back"
-          aria-label="返回首页"
-          @click="goBack"
-        />
-      </el-tooltip>
-      <div class="admin-heading">
-        <h1>用户管理</h1>
-        <p>管理账号资料、角色与密码</p>
-      </div>
-      <span class="admin-badge">管理员专用</span>
-    </header>
-    <p class="account-notice">
-      修改账号信息、角色或重置密码后，对应用户需要重新登录。支持多位管理员，最后一位管理员不可降级。
-    </p>
-
-    <section v-if="accessDenied" class="access-message" role="alert">
-      <h2>当前账号没有用户管理权限</h2>
-      <p>已清除页面中的用户信息，正在返回首页。</p>
-      <el-tooltip content="返回首页" placement="bottom" :show-after="250" :trigger-keys="[]">
-        <el-button
-          class="admin-icon-button app-icon-button"
-          :icon="Back"
-          aria-label="返回首页"
-          @click="goBack"
-        />
-      </el-tooltip>
-    </section>
-    <section v-else class="users-card" aria-label="用户列表">
-      <div class="users-toolbar">
-        <form class="user-search" role="search" @submit.prevent="searchUsers">
-          <label class="sr-only" for="admin-user-search">按用户名或邮箱搜索用户</label>
-          <input
-            id="admin-user-search"
-            v-model="keyword"
-            data-admin-search
-            type="search"
-            maxlength="255"
-            autocomplete="off"
-            placeholder="搜索用户名或邮箱"
-            @input="scheduleSearch"
-          />
-          <el-button type="primary" native-type="submit">搜索</el-button>
-        </form>
-        <div class="user-count" aria-live="polite">
-          共 {{ total }} 位用户 · {{ adminCount }} 位管理员
+  <div class="admin-users-page app-page">
+    <div class="app-page__content">
+      <header class="admin-header app-page__header">
+        <PageBackButton label="返回首页" @click="goBack" />
+        <div class="admin-heading app-page__heading">
+          <h1 class="app-page__title">用户管理</h1>
+          <p class="app-page__description">管理账号资料、角色与密码</p>
         </div>
-        <el-button class="refresh-button" :loading="loading" :disabled="busy" @click="loadUsers()"
-          >刷新</el-button
-        >
-      </div>
-      <div v-if="listError" class="list-state" role="alert" data-admin-list-error>
-        <p>{{ listError }}</p>
-        <el-button data-admin-retry @click="loadUsers()">重新加载</el-button>
-      </div>
-      <div v-else-if="loading" class="list-state" role="status" data-admin-loading>
-        正在读取用户列表…
-      </div>
-      <div v-else-if="!users.length" class="list-state" data-admin-empty>
-        <h2>{{ keyword.trim() ? '没有找到匹配的用户' : '暂无用户' }}</h2>
-        <p>
-          {{ keyword.trim() ? '试试其他用户名或邮箱，或清空搜索条件。' : '可以稍后刷新列表。' }}
-        </p>
-      </div>
-      <div v-else class="users-table-scroll" data-admin-list tabindex="0" aria-label="用户列表">
-        <table class="users-table" role="table">
-          <caption class="sr-only">
-            现有用户的账号资料、角色和管理操作
-          </caption>
-          <colgroup>
-            <col class="user-column" />
-            <col class="email-column" />
-            <col class="role-column" />
-            <col class="date-column" />
-            <col class="actions-column" />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">用户</th>
-              <th scope="col">邮箱</th>
-              <th scope="col">角色</th>
-              <th scope="col">注册时间</th>
-              <th scope="col">操作</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="user in users" :key="user.id" :data-admin-user="user.id">
-              <td class="user-cell">
-                <div class="user-name">
-                  <span class="user-avatar" aria-hidden="true">{{ initial(user.username) }}</span>
-                  <div>
-                    <strong data-admin-user-name :title="user.username">{{ user.username }}</strong
-                    ><span class="user-id"
-                      >ID {{ user.id
-                      }}<span v-if="user.id === currentUser?.id"> · 当前账号</span></span
-                    >
+        <span class="admin-badge">管理员专用</span>
+      </header>
+      <p class="account-notice">
+        修改账号信息、角色或重置密码后，对应用户需要重新登录。支持多位管理员，最后一位管理员不可降级。
+      </p>
+
+      <section v-if="accessDenied" class="access-message" role="alert">
+        <h2>当前账号没有用户管理权限</h2>
+        <p>已清除页面中的用户信息，正在返回首页。</p>
+        <PageBackButton label="返回首页" @click="goBack" />
+      </section>
+      <section v-else class="users-card app-panel" aria-label="用户列表">
+        <div class="users-toolbar app-toolbar app-panel__toolbar">
+          <form class="user-search app-search" role="search" @submit.prevent="searchUsers">
+            <label class="sr-only" for="admin-user-search">按用户名或邮箱搜索用户</label>
+            <input
+              id="admin-user-search"
+              class="app-input"
+              v-model="keyword"
+              data-admin-search
+              type="search"
+              maxlength="255"
+              autocomplete="off"
+              placeholder="搜索用户名或邮箱"
+              @input="scheduleSearch"
+            />
+            <el-button type="primary" native-type="submit">搜索</el-button>
+          </form>
+          <div class="user-count" aria-live="polite">
+            共 {{ total }} 位用户 · {{ adminCount }} 位管理员
+          </div>
+          <el-button class="refresh-button" :loading="loading" :disabled="busy" @click="loadUsers()"
+            >刷新</el-button
+          >
+        </div>
+        <div v-if="listError" class="list-state" role="alert" data-admin-list-error>
+          <p>{{ listError }}</p>
+          <el-button data-admin-retry @click="loadUsers()">重新加载</el-button>
+        </div>
+        <div v-else-if="loading" class="list-state" role="status" data-admin-loading>
+          正在读取用户列表…
+        </div>
+        <div v-else-if="!users.length" class="list-state" data-admin-empty>
+          <h2>{{ keyword.trim() ? '没有找到匹配的用户' : '暂无用户' }}</h2>
+          <p>
+            {{ keyword.trim() ? '试试其他用户名或邮箱，或清空搜索条件。' : '可以稍后刷新列表。' }}
+          </p>
+        </div>
+        <div v-else class="users-table-scroll" data-admin-list tabindex="0" aria-label="用户列表">
+          <table class="users-table" role="table">
+            <caption class="sr-only">
+              现有用户的账号资料、角色和管理操作
+            </caption>
+            <colgroup>
+              <col class="user-column" />
+              <col class="email-column" />
+              <col class="role-column" />
+              <col class="date-column" />
+              <col class="actions-column" />
+            </colgroup>
+            <thead>
+              <tr>
+                <th scope="col">用户</th>
+                <th scope="col">邮箱</th>
+                <th scope="col">角色</th>
+                <th scope="col">注册时间</th>
+                <th scope="col">操作</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="user in users" :key="user.id" :data-admin-user="user.id">
+                <td class="user-cell">
+                  <div class="user-name">
+                    <span class="user-avatar" aria-hidden="true">{{ initial(user.username) }}</span>
+                    <div>
+                      <strong data-admin-user-name :title="user.username">{{
+                        user.username
+                      }}</strong
+                      ><span class="user-id"
+                        >ID {{ user.id
+                        }}<span v-if="user.id === currentUser?.id"> · 当前账号</span></span
+                      >
+                    </div>
                   </div>
-                </div>
-              </td>
-              <td class="email-cell">
-                <span :title="user.email">{{ user.email }}</span>
-              </td>
-              <td class="role-cell">
-                <span class="role-tag" :class="user.role">{{
-                  user.role === 'admin' ? '管理员' : '普通用户'
-                }}</span>
-              </td>
-              <td class="created-at">
-                <time :datetime="user.createdAt">{{ formatCreatedAt(user.createdAt) }}</time>
-              </td>
-              <td class="actions-cell">
-                <div class="row-actions">
-                  <el-tooltip
-                    content="编辑用户"
-                    placement="top"
-                    :show-after="250"
-                    :trigger-keys="[]"
-                  >
-                    <el-button
-                      data-admin-edit
-                      class="admin-icon-button app-icon-button"
-                      type="primary"
-                      :icon="Edit"
-                      aria-label="编辑用户"
-                      :disabled="busy"
-                      @click="openEdit(user)"
-                    />
-                  </el-tooltip>
-                  <el-tooltip
-                    content="重置密码"
-                    placement="top"
-                    :show-after="250"
-                    :trigger-keys="[]"
-                  >
-                    <el-button
-                      data-admin-reset-password
-                      class="admin-icon-button app-icon-button"
-                      :icon="Key"
-                      aria-label="重置密码"
-                      :disabled="busy"
-                      @click="openPassword(user)"
-                    />
-                  </el-tooltip>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <footer class="users-pagination" aria-label="用户列表分页">
-        <label for="admin-page-size"
-          >每页
-          <el-select
-            id="admin-page-size"
-            v-model="pageSize"
-            class="admin-page-size"
-            data-admin-page-size
-            aria-label="每页条数"
-            :disabled="loading || busy"
-            @change="loadUsers(1)"
-          >
-            <el-option
-              v-for="size in [10, 20, 50]"
-              :key="size"
-              :value="size"
-              :label="`${size} 条`"
-            /> </el-select
-        ></label>
-        <div class="page-controls">
-          <el-tooltip content="上一页" placement="top" :show-after="250" :trigger-keys="[]">
-            <span class="icon-tooltip-target">
-              <el-button
-                data-admin-prev
-                class="admin-icon-button app-icon-button"
-                :icon="ArrowLeft"
-                aria-label="上一页"
-                :disabled="loading || busy || page <= 1"
-                @click="loadUsers(page - 1)"
-              />
-            </span>
-          </el-tooltip>
-          <span role="status">{{ page }} / {{ pageCount }}</span>
-          <el-tooltip content="下一页" placement="top" :show-after="250" :trigger-keys="[]">
-            <span class="icon-tooltip-target">
-              <el-button
-                data-admin-next
-                class="admin-icon-button app-icon-button"
-                :icon="ArrowRight"
-                aria-label="下一页"
-                :disabled="loading || busy || page >= pageCount"
-                @click="loadUsers(page + 1)"
-              />
-            </span>
-          </el-tooltip>
+                </td>
+                <td class="email-cell">
+                  <span :title="user.email">{{ user.email }}</span>
+                </td>
+                <td class="role-cell">
+                  <span class="role-tag" :class="user.role">{{
+                    user.role === 'admin' ? '管理员' : '普通用户'
+                  }}</span>
+                </td>
+                <td class="created-at">
+                  <time :datetime="user.createdAt">{{ formatCreatedAt(user.createdAt) }}</time>
+                </td>
+                <td class="actions-cell">
+                  <div class="row-actions">
+                    <el-tooltip
+                      content="编辑用户"
+                      placement="top"
+                      :show-after="250"
+                      :trigger-keys="[]"
+                    >
+                      <el-button
+                        data-admin-edit
+                        class="admin-icon-button app-icon-button"
+                        type="primary"
+                        :icon="Edit"
+                        aria-label="编辑用户"
+                        :disabled="busy"
+                        @click="openEdit(user)"
+                      />
+                    </el-tooltip>
+                    <el-tooltip
+                      content="重置密码"
+                      placement="top"
+                      :show-after="250"
+                      :trigger-keys="[]"
+                    >
+                      <el-button
+                        data-admin-reset-password
+                        class="admin-icon-button app-icon-button"
+                        :icon="Key"
+                        aria-label="重置密码"
+                        :disabled="busy"
+                        @click="openPassword(user)"
+                      />
+                    </el-tooltip>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
-      </footer>
-    </section>
+        <footer class="users-pagination" aria-label="用户列表分页">
+          <label for="admin-page-size"
+            >每页
+            <el-select
+              id="admin-page-size"
+              v-model="pageSize"
+              class="admin-page-size"
+              data-admin-page-size
+              aria-label="每页条数"
+              :disabled="loading || busy"
+              @change="loadUsers(1)"
+            >
+              <el-option
+                v-for="size in [10, 20, 50]"
+                :key="size"
+                :value="size"
+                :label="`${size} 条`"
+              /> </el-select
+          ></label>
+          <div class="page-controls">
+            <el-tooltip content="上一页" placement="top" :show-after="250" :trigger-keys="[]">
+              <span class="icon-tooltip-target">
+                <el-button
+                  data-admin-prev
+                  class="admin-icon-button app-icon-button"
+                  :icon="ArrowLeft"
+                  aria-label="上一页"
+                  :disabled="loading || busy || page <= 1"
+                  @click="loadUsers(page - 1)"
+                />
+              </span>
+            </el-tooltip>
+            <span role="status">{{ page }} / {{ pageCount }}</span>
+            <el-tooltip content="下一页" placement="top" :show-after="250" :trigger-keys="[]">
+              <span class="icon-tooltip-target">
+                <el-button
+                  data-admin-next
+                  class="admin-icon-button app-icon-button"
+                  :icon="ArrowRight"
+                  aria-label="下一页"
+                  :disabled="loading || busy || page >= pageCount"
+                  @click="loadUsers(page + 1)"
+                />
+              </span>
+            </el-tooltip>
+          </div>
+        </footer>
+      </section>
 
-    <el-dialog
-      v-model="editOpen"
-      class="admin-user-dialog"
-      title="编辑用户"
-      width="520px"
-      append-to-body
-      :close-on-click-modal="!editBusy"
-      :close-on-press-escape="!editBusy"
-      :show-close="!editBusy"
-      :before-close="beforeEditClose"
-      @closed="clearEdit"
-    >
-      <el-form
-        v-if="editUser"
-        :model="editForm"
-        label-width="80px"
-        label-position="right"
-        class="admin-form"
-        @submit.prevent="saveEdit"
+      <el-dialog
+        v-model="editOpen"
+        class="admin-user-dialog"
+        title="编辑用户"
+        width="520px"
+        append-to-body
+        :close-on-click-modal="!editBusy"
+        :close-on-press-escape="!editBusy"
+        :show-close="!editBusy"
+        :before-close="beforeEditClose"
+        @closed="clearEdit"
       >
-        <div class="dialog-subject">
-          <span class="user-avatar" aria-hidden="true">{{ initial(editUser.username) }}</span>
-          <div class="dialog-subject-info">
-            <strong :title="editUser.username">{{ editUser.username }}</strong>
-            <span
-              >ID {{ editUser.id }}{{ editUser.id === currentUser?.id ? ' · 当前账号' : '' }}</span
-            >
+        <el-form
+          v-if="editUser"
+          :model="editForm"
+          label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+          label-position="right"
+          class="admin-form app-form"
+          @submit.prevent="saveEdit"
+        >
+          <div class="dialog-subject">
+            <span class="user-avatar" aria-hidden="true">{{ initial(editUser.username) }}</span>
+            <div class="dialog-subject-info">
+              <strong :title="editUser.username">{{ editUser.username }}</strong>
+              <span
+                >ID {{ editUser.id
+                }}{{ editUser.id === currentUser?.id ? ' · 当前账号' : '' }}</span
+              >
+            </div>
           </div>
-        </div>
-        <el-form-item label="用户名" prop="username" for="admin-edit-username">
-          <el-input
-            id="admin-edit-username"
-            v-model="editForm.username"
-            maxlength="255"
-            autocomplete="off"
-            :disabled="editBusy"
-          />
-        </el-form-item>
-        <el-form-item label="邮箱" prop="email" for="admin-edit-email">
-          <el-input
-            id="admin-edit-email"
-            v-model="editForm.email"
-            type="email"
-            maxlength="255"
-            autocomplete="off"
-            :disabled="editBusy"
-          />
-        </el-form-item>
-        <el-form-item label="角色" prop="role" for="admin-edit-role">
-          <el-select
-            id="admin-edit-role"
-            v-model="editForm.role"
-            popper-class="admin-role-dropdown"
-            :disabled="editBusy"
-            aria-label="角色"
-          >
-            <el-option label="普通用户" value="user" :disabled="editingLastAdmin" />
-            <el-option label="管理员" value="admin" />
-          </el-select>
-          <p v-if="editingLastAdmin" class="form-hint field-hint">
-            这是最后一位管理员，必须保留管理员角色。
-          </p>
-        </el-form-item>
-        <p class="form-hint">
-          保存变更后，该用户所有已登录设备都需要重新登录。{{
-            editUser.id === currentUser?.id ? '你也将退出当前账号。' : ''
-          }}
-        </p>
-        <p v-if="editError" class="form-error" role="alert">{{ editError }}</p>
-      </el-form>
-      <template #footer
-        ><el-button :disabled="editBusy" @click="editOpen = false">取消</el-button
-        ><el-button
-          data-admin-save
-          type="primary"
-          :loading="editBusy"
-          :disabled="!editChanged"
-          @click="saveEdit"
-          >保存修改</el-button
-        ></template
-      >
-    </el-dialog>
-    <el-dialog
-      v-model="passwordOpen"
-      class="admin-user-dialog"
-      title="重置用户密码"
-      width="520px"
-      append-to-body
-      :close-on-click-modal="!passwordBusy"
-      :close-on-press-escape="!passwordBusy"
-      :show-close="!passwordBusy"
-      :before-close="beforePasswordClose"
-      @closed="clearPassword"
-    >
-      <el-form
-        v-if="passwordUser"
-        :model="passwordForm"
-        label-width="80px"
-        label-position="right"
-        class="admin-form"
-        @submit.prevent="savePassword"
-      >
-        <div class="dialog-subject">
-          <span class="user-avatar" aria-hidden="true">{{ initial(passwordUser.username) }}</span>
-          <div class="dialog-subject-info">
-            <strong :title="passwordUser.username">{{ passwordUser.username }}</strong>
-            <span
-              >ID {{ passwordUser.id
-              }}{{ passwordUser.id === currentUser?.id ? ' · 当前账号' : '' }}</span
+          <el-form-item label="用户名" prop="username" for="admin-edit-username">
+            <el-input
+              id="admin-edit-username"
+              v-model="editForm.username"
+              maxlength="255"
+              autocomplete="off"
+              :disabled="editBusy"
+            />
+          </el-form-item>
+          <el-form-item label="邮箱" prop="email" for="admin-edit-email">
+            <el-input
+              id="admin-edit-email"
+              v-model="editForm.email"
+              type="email"
+              maxlength="255"
+              autocomplete="off"
+              :disabled="editBusy"
+            />
+          </el-form-item>
+          <el-form-item label="角色" prop="role" for="admin-edit-role">
+            <el-select
+              id="admin-edit-role"
+              v-model="editForm.role"
+              popper-class="admin-role-dropdown"
+              :disabled="editBusy"
+              aria-label="角色"
             >
-          </div>
-        </div>
-        <el-form-item label="新密码" prop="password" for="admin-reset-password">
-          <el-input
-            id="admin-reset-password"
-            v-model="passwordForm.password"
-            type="password"
-            show-password
-            autocomplete="new-password"
-            aria-describedby="admin-password-rules"
-            :disabled="passwordBusy"
-          />
-        </el-form-item>
-        <el-form-item label="确认密码" prop="confirm" for="admin-reset-confirm">
-          <el-input
-            id="admin-reset-confirm"
-            v-model="passwordForm.confirm"
-            type="password"
-            show-password
-            autocomplete="new-password"
-            :disabled="passwordBusy"
-          />
-        </el-form-item>
-        <div id="admin-password-rules" class="password-rules">
-          <p class="password-length" :class="{ 'form-error': passwordBytes > 72 }">
-            <span>密码长度</span><span>{{ passwordBytes }} / 72 字节</span>
-          </p>
-          <p class="form-hint">手动设置新密码，无需旧密码。密码不能为空，前后空格也会保留。</p>
+              <el-option label="普通用户" value="user" :disabled="editingLastAdmin" />
+              <el-option label="管理员" value="admin" />
+            </el-select>
+            <p v-if="editingLastAdmin" class="form-hint field-hint">
+              这是最后一位管理员，必须保留管理员角色。
+            </p>
+          </el-form-item>
           <p class="form-hint">
-            最多 72 个 UTF-8 字节；纯英文字母或数字最多 72 位，常见汉字最多 24
-            个。没有强制字符组合要求。
+            保存变更后，该用户所有已登录设备都需要重新登录。{{
+              editUser.id === currentUser?.id ? '你也将退出当前账号。' : ''
+            }}
           </p>
-        </div>
-        <p v-if="passwordValidation" class="form-error" role="status">{{ passwordValidation }}</p>
-        <p class="form-hint">
-          重置成功后，该用户所有已登录设备都会退出，需使用新密码登录。{{
-            passwordUser.id === currentUser?.id ? '你将退出当前账号。' : ''
-          }}
-        </p>
-        <p v-if="passwordError" class="form-error" role="alert">{{ passwordError }}</p>
-      </el-form>
-      <template #footer
-        ><el-button :disabled="passwordBusy" @click="passwordOpen = false">取消</el-button
-        ><el-button
-          data-admin-password-save
-          type="primary"
-          :loading="passwordBusy"
-          :disabled="!passwordValid"
-          @click="savePassword"
-          >确认重置</el-button
-        ></template
+          <p v-if="editError" class="form-error" role="alert">{{ editError }}</p>
+        </el-form>
+        <template #footer
+          ><el-button :disabled="editBusy" @click="editOpen = false">取消</el-button
+          ><el-button
+            data-admin-save
+            type="primary"
+            :loading="editBusy"
+            :disabled="!editChanged"
+            @click="saveEdit"
+            >保存修改</el-button
+          ></template
+        >
+      </el-dialog>
+      <el-dialog
+        v-model="passwordOpen"
+        class="admin-user-dialog"
+        title="重置用户密码"
+        width="520px"
+        append-to-body
+        :close-on-click-modal="!passwordBusy"
+        :close-on-press-escape="!passwordBusy"
+        :show-close="!passwordBusy"
+        :before-close="beforePasswordClose"
+        @closed="clearPassword"
       >
-    </el-dialog>
+        <el-form
+          v-if="passwordUser"
+          :model="passwordForm"
+          label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+          label-position="right"
+          class="admin-form app-form"
+          @submit.prevent="savePassword"
+        >
+          <div class="dialog-subject">
+            <span class="user-avatar" aria-hidden="true">{{ initial(passwordUser.username) }}</span>
+            <div class="dialog-subject-info">
+              <strong :title="passwordUser.username">{{ passwordUser.username }}</strong>
+              <span
+                >ID {{ passwordUser.id
+                }}{{ passwordUser.id === currentUser?.id ? ' · 当前账号' : '' }}</span
+              >
+            </div>
+          </div>
+          <el-form-item label="新密码" prop="password" for="admin-reset-password">
+            <el-input
+              id="admin-reset-password"
+              v-model="passwordForm.password"
+              type="password"
+              show-password
+              autocomplete="new-password"
+              aria-describedby="admin-password-rules"
+              :disabled="passwordBusy"
+            />
+          </el-form-item>
+          <el-form-item label="确认密码" prop="confirm" for="admin-reset-confirm">
+            <el-input
+              id="admin-reset-confirm"
+              v-model="passwordForm.confirm"
+              type="password"
+              show-password
+              autocomplete="new-password"
+              :disabled="passwordBusy"
+            />
+          </el-form-item>
+          <div id="admin-password-rules" class="password-rules">
+            <p class="password-length" :class="{ 'form-error': passwordBytes > 72 }">
+              <span>密码长度</span><span>{{ passwordBytes }} / 72 字节</span>
+            </p>
+            <p class="form-hint">手动设置新密码，无需旧密码。密码不能为空，前后空格也会保留。</p>
+            <p class="form-hint">
+              最多 72 个 UTF-8 字节；纯英文字母或数字最多 72 位，常见汉字最多 24
+              个。没有强制字符组合要求。
+            </p>
+          </div>
+          <p v-if="passwordValidation" class="form-error" role="status">{{ passwordValidation }}</p>
+          <p class="form-hint">
+            重置成功后，该用户所有已登录设备都会退出，需使用新密码登录。{{
+              passwordUser.id === currentUser?.id ? '你将退出当前账号。' : ''
+            }}
+          </p>
+          <p v-if="passwordError" class="form-error" role="alert">{{ passwordError }}</p>
+        </el-form>
+        <template #footer
+          ><el-button :disabled="passwordBusy" @click="passwordOpen = false">取消</el-button
+          ><el-button
+            data-admin-password-save
+            type="primary"
+            :loading="passwordBusy"
+            :disabled="!passwordValid"
+            @click="savePassword"
+            >确认重置</el-button
+          ></template
+        >
+      </el-dialog>
+    </div>
   </div>
 </template>
 
@@ -382,7 +374,8 @@ import {
   ElSelect,
   ElTooltip,
 } from 'element-plus';
-import { ArrowLeft, ArrowRight, Back, Edit, Key } from '@element-plus/icons-vue';
+import PageBackButton from '@/components/navigation/PageBackButton.vue';
+import { ArrowLeft, ArrowRight, Edit, Key } from '@element-plus/icons-vue';
 import 'element-plus/es/components/button/style/css';
 import 'element-plus/es/components/dialog/style/css';
 import 'element-plus/es/components/form/style/css';
@@ -724,54 +717,11 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
-.admin-users-page {
-  box-sizing: border-box;
-  width: min(100%, 1480px);
-  height: var(--app-height, 100dvh);
-  min-width: 0;
-  margin-inline: auto;
-  padding: clamp(16px, 2vw, 28px);
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  overflow-y: auto;
-  overflow-x: hidden;
-  color: var(--theme-text);
-}
-.admin-header {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 16px;
-}
 .admin-header > .el-button {
   margin: 0;
 }
-.admin-users-page .admin-icon-button {
-  flex: 0 0 var(--app-button-height);
-  width: var(--app-button-height);
-  height: var(--app-button-height);
-  margin: 0;
-  padding: 0;
-}
-.admin-icon-button :deep(.el-icon) {
-  font-size: 16px;
-}
 .icon-tooltip-target {
   display: inline-flex;
-}
-.admin-heading {
-  min-width: 0;
-}
-.admin-heading h1 {
-  margin: 0;
-  font-size: 25px;
-  letter-spacing: -0.5px;
-}
-.admin-heading p {
-  margin: 5px 0 0;
-  color: var(--theme-muted);
-  font-size: 12px;
 }
 .admin-badge {
   margin-left: auto;
@@ -784,7 +734,7 @@ onBeforeUnmount(() => {
 }
 .account-notice {
   flex-shrink: 0;
-  margin: 0;
+  margin: 0 0 var(--app-space-4);
   padding: 12px 16px;
   color: var(--theme-muted);
   background: var(--theme-surface);
@@ -800,20 +750,10 @@ onBeforeUnmount(() => {
   flex-direction: column;
   min-width: 0;
   min-height: 300px;
-  border: 1px solid var(--el-border-color-lighter);
-  border-radius: 18px;
-  background: var(--theme-surface);
-  box-shadow: 0 8px 30px rgb(0 0 0 / 3%);
   overflow: hidden;
 }
 .users-toolbar {
-  display: flex;
   flex-shrink: 0;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 20px;
-  border-bottom: 1px solid var(--el-border-color-lighter);
 }
 .user-search {
   display: flex;
@@ -822,27 +762,9 @@ onBeforeUnmount(() => {
   max-width: 520px;
   gap: 8px;
 }
-.user-search input {
-  min-width: 0;
-  border: 1px solid var(--el-border-color);
-  border-radius: 8px;
-  color: var(--theme-text);
-  background: var(--el-bg-color);
-  font: inherit;
-}
-.user-search input {
-  flex: 1;
-  width: 100%;
-  height: var(--app-button-height);
-  padding: 0 12px;
-  font-size: 13px;
-}
 .user-search > .el-button,
 .refresh-button {
   margin: 0;
-}
-.user-search input::placeholder {
-  color: var(--theme-muted);
 }
 .user-count {
   margin-left: auto;
@@ -863,7 +785,7 @@ onBeforeUnmount(() => {
   table-layout: fixed;
   border-collapse: collapse;
   text-align: left;
-  font-size: 13px;
+  font-size: var(--app-font-body-size);
 }
 .user-column {
   width: 28%;
@@ -933,7 +855,7 @@ onBeforeUnmount(() => {
   display: block;
   margin-top: 4px;
   color: var(--theme-muted);
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .email-cell > span {
   display: block;
@@ -948,7 +870,7 @@ onBeforeUnmount(() => {
   border-radius: 6px;
   color: var(--theme-muted);
   background: var(--el-fill-color);
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   white-space: nowrap;
 }
 .role-tag.admin {
@@ -985,9 +907,6 @@ onBeforeUnmount(() => {
 }
 .admin-page-size {
   width: 96px;
-}
-.admin-page-size :deep(.el-select__wrapper) {
-  min-height: var(--app-button-height);
 }
 .page-controls {
   display: flex;
@@ -1054,43 +973,22 @@ select:focus-visible,
   outline-offset: 2px;
 }
 @media (max-width: 900px) {
-  .admin-users-page {
-    padding: 12px;
-    gap: 10px;
-  }
-  .admin-header {
-    gap: 12px;
-  }
-  .admin-heading h1 {
-    font-size: 20px;
-  }
-  .admin-heading p {
-    display: none;
-  }
   .admin-badge {
-    font-size: 10px;
+    font-size: var(--app-font-caption-size);
     padding: 5px 7px;
   }
   .account-notice {
     padding: 9px 12px;
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
   .users-card {
     flex: none;
     min-height: 0;
-    border-radius: 12px;
-  }
-  .users-toolbar {
-    padding: 12px;
-    gap: 10px;
   }
   .user-search {
     flex-basis: 100%;
     min-width: 0;
     max-width: none;
-  }
-  .user-search input {
-    font-size: 16px;
   }
   .user-count {
     margin-left: 0;

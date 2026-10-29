@@ -66,7 +66,7 @@ summary {
 }
 summary span {
   margin-left: 8px;
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 .catalog-info p {
   margin: 12px 0;
@@ -89,7 +89,7 @@ strong {
   font-weight: 500;
 }
 small {
-  font-size: 10px;
+  font-size: var(--app-font-caption-size);
 }
 .catalog-error {
   color: var(--el-color-danger);
@@ -100,7 +100,7 @@ small {
     gap: 14px 10px;
   }
   .catalog-source span {
-    font-size: 11px;
+    font-size: var(--app-font-caption-size);
   }
 }
 </style>

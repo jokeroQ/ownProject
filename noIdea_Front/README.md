@@ -10,6 +10,8 @@ This template should help get you started developing with Vue 3 and TypeScript i
 
 ## 开发与代码检查
 
+新增页面、弹窗和调整 UI 前，必须阅读并遵循根目录的 [统一 UI 开发规范](../UI_GUIDELINES.md)。全局尺寸与主题在 `global-theme.css`，页面和表单公共类在 `app-ui.css`，弹窗在 `overlays.css`；不要从其他页面复制一套局部控件样式。根目录 `AGENTS.md` 已将此规范列为后续前端开发的必读要求。
+
 在此目录执行 `npm ci` 安装依赖，然后运行 `npm run dev`。也支持使用仓库中的 pnpm 锁文件执行 `pnpm install --frozen-lockfile`；请选择其中一种方式安装，不要混用 node_modules。
 
 - `npm run check`：执行 TypeScript、ESLint 和格式检查。

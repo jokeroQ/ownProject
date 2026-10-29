@@ -34,14 +34,14 @@ watch(source, () => {
 
 <style scoped lang="less">
 .bookmark-icon {
-  width: 42px;
-  height: 42px;
+  width: 36px;
+  height: 36px;
   display: grid;
   place-items: center;
   flex-shrink: 0;
   overflow: hidden;
-  border-radius: 12px;
-  background: var(--el-color-primary-light-9);
+  border-radius: 10px;
+  background: var(--app-accent-soft);
   color: var(--ui-accent-text, var(--el-color-primary));
   img {
     width: 100%;
@@ -51,18 +51,18 @@ watch(source, () => {
   }
 }
 .bookmark-initial {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 21px;
+  font-weight: 600;
   line-height: 1;
 }
 @media (max-width: 640px) {
   .bookmark-icon {
-    width: 34px;
-    height: 34px;
+    width: 32px;
+    height: 32px;
     border-radius: 10px;
   }
   .bookmark-initial {
-    font-size: 22px;
+    font-size: 18px;
   }
 }
 </style>

@@ -75,7 +75,10 @@
       :close-on-press-escape="!busy"
       :show-close="!busy"
     >
-      <el-form label-width="72px" label-position="left"
+      <el-form
+        class="app-form"
+        label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+        label-position="right"
         ><el-form-item label="目标分类"
           ><el-select
             v-model="target"
@@ -181,13 +184,13 @@ async function remove() {
   min-width: 0;
   padding: 7px 12px;
   border: 1px solid var(--el-border-color-lighter);
-  border-radius: 12px;
+  border-radius: var(--app-radius-panel);
   background: color-mix(in srgb, var(--el-bg-color) 94%, transparent);
   backdrop-filter: blur(12px);
   position: sticky;
   top: 0;
   z-index: 4;
-  box-shadow: 0 2px 8px rgb(15 23 42 / 2%);
+  box-shadow: var(--app-shadow-panel);
 }
 .batch-selection {
   display: flex;

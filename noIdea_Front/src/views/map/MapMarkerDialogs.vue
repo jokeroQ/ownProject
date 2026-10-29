@@ -55,7 +55,12 @@
     class="map-marker-dialog"
     append-to-body
   >
-    <el-form label-width="56px" label-position="left" @submit.prevent="save">
+    <el-form
+      class="app-form"
+      label-width="calc(var(--app-form-label-width) + var(--app-form-column-gap))"
+      label-position="right"
+      @submit.prevent="save"
+    >
       <el-form-item label="名称"
         ><el-input
           v-model="draft.name"
@@ -252,7 +257,7 @@ watch(
   font-weight: 500;
 }
 .marker-summary > span {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
   color: var(--theme-muted);
   overflow-wrap: anywhere;
 }
@@ -269,20 +274,12 @@ watch(
   align-items: center;
   gap: 2px;
 }
-.marker-row-actions .el-button {
-  width: 28px;
-  height: 28px;
-  margin: 0;
-}
 :deep(.el-input-number) {
   width: 100%;
 }
 @media (max-width: 400px) {
   .marker-row-actions {
     gap: 0;
-  }
-  .marker-row-actions .el-button {
-    width: 25px;
   }
 }
 </style>

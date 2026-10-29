@@ -21,6 +21,8 @@
     "dev": "nodemon app.js",
     "start": "node app.js",
     "migrate:features": "node migrations/workspace-features.js",
+    "migrate:todos": "node migrations/todos.js",
+    "test:todos-browser": "node tests/todo-browser.smoke.cjs",
     "migrate:series": "node migrations/series.js",
     "migrate:series-library": "node migrations/series-library.js",
     "migrate:series-catalog": "node migrations/series-catalog.js",

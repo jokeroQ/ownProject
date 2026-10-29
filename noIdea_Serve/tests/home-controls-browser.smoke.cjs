@@ -47,15 +47,16 @@ async function main() {
         iconCentered: !!svg && Math.abs(svg.x + svg.width / 2 - bounds.x - bounds.width / 2) <= 1 &&
           Math.abs(svg.y + svg.height / 2 - bounds.y - bounds.height / 2) <= 1 };
     }));
-    assert.equal(geometry.length, 5, 'Toolbar must contain five consistent button elements');
+    assert.equal(geometry.length, 6, 'Toolbar includes category ordering, add, edit and three reserved actions');
     assert.ok(geometry.every(button => button.tag === 'BUTTON' && button.action));
-    assert.ok(geometry.slice(2).every(button => button.disabled && button.secondary && /暂无功能|暂未开放/.test(button.title)), 'Unimplemented actions must be disabled and clearly labelled');
+    assert.ok(geometry.filter(button => button.secondary).every(button => button.disabled && /暂无功能|暂未开放/.test(button.title)), 'Unimplemented actions must be disabled and clearly labelled');
     const visible = geometry.filter(button => button.visible);
-    assert.equal(visible.length, viewport.width <= 900 ? 2 : 5);
-    assert.ok(geometry.slice(0, 2).every(button => button.visible && !button.disabled));
+    assert.equal(visible.length, viewport.width <= 900 ? 3 : 6);
+    assert.equal(geometry.filter(button => !button.secondary).length, 3);
+    assert.ok(geometry.filter(button => !button.secondary).every(button => button.visible && !button.disabled));
     assert.ok(visible.every(button => button.iconCentered && Math.abs(button.width - visible[0].width) <= 1 &&
       Math.abs(button.height - visible[0].height) <= 1 && Math.abs(button.y - visible[0].y) <= 1), 'Visible icon button boxes must be uniform and centered');
-    if (visible.length === 5) {
+    if (visible.length === 6) {
       const gaps = visible.slice(1).map((button, index) => button.x - visible[index].x - visible[index].width);
       assert.ok(Math.max(...gaps) - Math.min(...gaps) <= 1, 'Desktop icon buttons must be evenly spaced');
     }
@@ -187,9 +188,9 @@ async function main() {
       await page.getByRole('dialog').last().getByRole('button', { name: '确认', exact: true }).click(); assert.ok((await addResponse).ok());
       await page.getByPlaceholder('请输入标签名称').waitFor({ state: 'hidden' });
       assert.ok((await request(login.token, 'GET', '/menu/getMenus')).data.some(menu => menu.title === 'Home controls ' + mode));
-      await page.locator('[data-home-edit-mode]').click(); await page.locator('.drag-help').waitFor();
+      await page.locator('[data-home-edit-mode]').click(); await page.locator('.batch-toolbar').waitFor();
       assert.equal(await page.locator('[data-home-edit-mode]').getAttribute('aria-pressed'), 'true');
-      await page.getByText('退出编辑模式', { exact: true }).click(); await page.locator('.drag-help').waitFor({ state: 'hidden' });
+      await page.getByText('退出编辑模式', { exact: true }).click(); await page.locator('.batch-toolbar').waitFor({ state: 'hidden' });
       assert.equal(await page.locator('[data-home-edit-mode]').getAttribute('aria-pressed'), 'false');
       await page.locator('[data-home-logout]').click();
       await page.locator('.el-message-box').getByRole('button', { name: '取消', exact: true }).click();

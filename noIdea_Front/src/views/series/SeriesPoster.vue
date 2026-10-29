@@ -130,6 +130,6 @@ img {
   opacity: 0.6;
 }
 small {
-  font-size: 11px;
+  font-size: var(--app-font-caption-size);
 }
 </style>
