@@ -105,6 +105,20 @@ body {
 *::after {
   box-sizing: border-box;
 }
+/* Hide native and component scrollbar tracks while preserving each container's scrolling. */
+:root,
+:root * {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+*::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+html .el-scrollbar__bar {
+  display: none !important;
+}
 @supports (height: 100dvh) {
   :root {
     --app-height: 100dvh;

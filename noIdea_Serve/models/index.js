@@ -8,6 +8,7 @@ const db = {
   UserTheme: require('./UserTheme'),
   UserPreference: require('./UserPreference'),
   UserTodo: require('./UserTodo'),
+  UserReport: require('./UserReport'),
   UserSeries: require('./UserSeries'),
   SeriesCatalog: require('./SeriesCatalog'),
   UserFlowchart: require('./UserFlowchart'),

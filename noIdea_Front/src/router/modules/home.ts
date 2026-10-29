@@ -1,5 +1,11 @@
 export default [
   {
+    path: '/reports',
+    name: 'workReports',
+    component: () => import('@views/reports/index.vue'),
+    meta: { title: '工作日报', requiresAuth: true },
+  },
+  {
     path: '/todos',
     name: 'todoList',
     component: () => import('@views/todos/index.vue'),

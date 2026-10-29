@@ -22,6 +22,8 @@
     "start": "node app.js",
     "migrate:features": "node migrations/workspace-features.js",
     "migrate:todos": "node migrations/todos.js",
+    "migrate:reports": "node migrations/reports.js",
+    "test:reports-browser": "node tests/reports-browser.smoke.cjs",
     "test:todos-browser": "node tests/todo-browser.smoke.cjs",
     "migrate:series": "node migrations/series.js",
     "migrate:series-library": "node migrations/series-library.js",
@@ -37,6 +39,8 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
+    "docx": "9.5.1",
+    "exceljs": "4.4.0",
     "express": "^4.21.1",
     "htmlparser2": "^10.1.0",
     "https-proxy-agent": "7.0.6",

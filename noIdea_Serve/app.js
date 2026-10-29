@@ -14,6 +14,7 @@ app.use('/api/menu', requireAuth, require('./routes/menuRoutes'));
 app.use('/api/theme', requireAuth, require('./routes/themeRoutes'));
 app.use('/api/dinner', requireAuth, require('./routes/dinnerRoutes'));
 app.use('/api/todos', requireAuth, require('./routes/todoRoutes'));
+app.use('/api/reports', requireAuth, require('./routes/reportRoutes'));
 app.use('/api/series', requireAuth, require('./routes/seriesRoutes'));
 app.use('/api/flowchart', requireAuth, require('./routes/flowchartRoutes'));
 app.use('/api/chat', requireAuth, require('./routes/chatRoutes'));
